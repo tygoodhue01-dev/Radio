@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, BackgroundTasks
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
@@ -10,6 +10,8 @@ import uuid
 import bcrypt
 import jwt
 import secrets
+import urllib.request
+import asyncio
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -496,17 +498,144 @@ async def update_profile(req: ProfileUpdate, user: dict = Depends(get_current_us
     updated = await db.users.find_one({"user_id": user["user_id"]}, {"_id": 0, "password_hash": 0})
     return updated
 
+# ==================== METADATA FETCHING ====================
+def fetch_icecast_metadata(stream_url: str) -> dict:
+    """Fetch current song metadata from Icecast/Shoutcast stream."""
+    try:
+        header = {'Icy-MetaData': '1', 'User-Agent': 'TheBeat515/1.0'}
+        request = urllib.request.Request(stream_url, headers=header)
+        response = urllib.request.urlopen(request, timeout=10)
+        
+        icy_metaint_header = response.headers.get('icy-metaint')
+        if icy_metaint_header is None:
+            logger.warning("No icy-metaint header in stream response")
+            return None
+        
+        metaint = int(icy_metaint_header)
+        read_buffer = metaint + 4096
+        content = response.read(read_buffer)
+        
+        # Convert bytes to string
+        content_str = content.decode('latin-1', errors='ignore')
+        
+        # Find StreamTitle
+        stream_title_pos = content_str.find("StreamTitle='")
+        if stream_title_pos == -1:
+            logger.warning("No StreamTitle found in metadata")
+            return None
+        
+        # Extract title
+        post_title_content = content_str[stream_title_pos + 13:]
+        semicolon_pos = post_title_content.find("';")
+        if semicolon_pos == -1:
+            logger.warning("Could not parse StreamTitle")
+            return None
+        
+        full_title = post_title_content[:semicolon_pos].strip()
+        
+        # Parse "Artist - Song Title" format
+        if ' - ' in full_title:
+            parts = full_title.split(' - ', 1)
+            artist = parts[0].strip()
+            song_title = parts[1].strip()
+        else:
+            artist = "The Beat 515"
+            song_title = full_title
+        
+        return {
+            "song_title": song_title,
+            "artist": artist,
+            "fetched_at": datetime.now(timezone.utc).isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error fetching metadata: {e}")
+        return None
+
+async def update_now_playing_from_stream():
+    """Background task to update now playing from Live365 stream."""
+    # Try multiple stream URLs
+    stream_urls = [
+        "http://streaming.live365.com/a72818",
+        "https://streaming.live365.com/a72818",
+        "http://ingest.live365.com:8000/a72818_live",
+    ]
+    
+    metadata = None
+    for stream_url in stream_urls:
+        try:
+            # Fetch metadata
+            metadata = await asyncio.to_thread(fetch_icecast_metadata, stream_url)
+            if metadata:
+                logger.info(f"Successfully fetched metadata from {stream_url}")
+                break
+        except Exception as e:
+            logger.debug(f"Failed to fetch from {stream_url}: {e}")
+            continue
+    
+    if metadata:
+        try:
+            # Get current now playing
+            current = await db.now_playing.find_one({"active": True}, {"_id": 0})
+            current_song = current.get("song_title", "") if current else ""
+            current_artist = current.get("artist", "") if current else ""
+            
+            # Only update if song changed
+            if metadata["song_title"] != current_song or metadata["artist"] != current_artist:
+                # Update now playing
+                np_doc = {
+                    "song_title": metadata["song_title"],
+                    "artist": metadata["artist"],
+                    "album": "",
+                    "dj_name": "Live365 Stream",
+                    "active": True,
+                    "started_at": datetime.now(timezone.utc).isoformat(),
+                    "source": "live365_metadata"
+                }
+                await db.now_playing.update_one({"active": True}, {"$set": np_doc}, upsert=True)
+                
+                # Add to recently played
+                recently_played_doc = {
+                    "song_id": f"song_{uuid.uuid4().hex[:12]}",
+                    "song_title": metadata["song_title"],
+                    "artist": metadata["artist"],
+                    "album": "",
+                    "played_at": datetime.now(timezone.utc).isoformat(),
+                    "source": "live365_metadata"
+                }
+                await db.recently_played.insert_one(recently_played_doc)
+                
+                logger.info(f"Updated now playing: {metadata['artist']} - {metadata['song_title']}")
+            else:
+                logger.debug("Song unchanged, no update needed")
+        except Exception as e:
+            logger.error(f"Error updating database: {e}")
+    else:
+        logger.warning("Could not fetch metadata from any stream URL - metadata may not be available")
+
 # ==================== STREAM CONFIG ====================
 @api_router.get("/stream-config")
 async def get_stream_config():
     config = await db.stream_config.find_one({"active": True}, {"_id": 0})
     if not config:
         return {
-            "stream_url": "https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one",
+            "stream_url": "https://streaming.live365.com/a72818",
             "station_name": "The Beat 515",
             "tagline": "Proud. Loud. Local."
         }
     return config
+
+@api_router.post("/stream/refresh-metadata")
+async def refresh_metadata(background_tasks: BackgroundTasks):
+    """Manually trigger metadata refresh (for testing)."""
+    background_tasks.add_task(update_now_playing_from_stream)
+    return {"message": "Metadata refresh triggered"}
+
+# ==================== RECENTLY PLAYED ====================
+@api_router.get("/recently-played")
+async def get_recently_played(limit: int = 50):
+    """Get recently played songs."""
+    songs = await db.recently_played.find({}, {"_id": 0}).sort("played_at", -1).limit(limit).to_list(limit)
+    return songs
 
 # ==================== STATS (ADMIN) ====================
 @api_router.get("/admin/stats")
@@ -835,11 +964,17 @@ async def startup():
     sc = await db.stream_config.find_one({"active": True})
     if not sc:
         await db.stream_config.insert_one({
-            "stream_url": "https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one",
+            "stream_url": "https://streaming.live365.com/a72818",
             "station_name": "The Beat 515",
             "tagline": "Proud. Loud. Local.",
             "active": True
         })
+    else:
+        # Update stream URL if it's still the old one
+        await db.stream_config.update_one(
+            {"active": True},
+            {"$set": {"stream_url": "https://streaming.live365.com/a72818"}}
+        )
     
     # Seed rewards catalog
     reward_count = await db.rewards.count_documents({})
@@ -890,6 +1025,20 @@ async def startup():
         logger.info("Podcasts seeded")
     
     logger.info("The Beat 515 backend started successfully!")
+    
+    # Start background task for metadata polling
+    asyncio.create_task(metadata_polling_loop())
+
+async def metadata_polling_loop():
+    """Background loop to poll Live365 metadata every 2 minutes."""
+    logger.info("Starting metadata polling loop (every 2 minutes)")
+    while True:
+        try:
+            await asyncio.sleep(120)  # 2 minutes
+            await update_now_playing_from_stream()
+        except Exception as e:
+            logger.error(f"Error in metadata polling loop: {e}")
+            await asyncio.sleep(120)  # Continue after error
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

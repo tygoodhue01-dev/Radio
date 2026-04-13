@@ -40,7 +40,7 @@ export default function HomeScreen() {
     } catch (e) { console.error(e); }
   }, []);
 
-  useEffect(() => { loadData(); const i = setInterval(loadData, 30000); return () => clearInterval(i); }, [loadData]);
+  useEffect(() => { loadData(); const i = setInterval(loadData, 120000); return () => clearInterval(i); }, [loadData]); // Refresh every 2 minutes
   const onRefresh = async () => { setRefreshing(true); await loadData(); setRefreshing(false); };
 
   if (isWeb) return <WebLayout {...{ user, router, nowPlaying, news, shows, events, contests, podcasts, djs, isPlaying, setIsPlaying, onRefresh, refreshing }} />;
@@ -70,6 +70,10 @@ export default function HomeScreen() {
             <Text style={s.mSong}>{nowPlaying?.song_title || 'The Beat 515'}</Text>
             <Text style={s.mArtist}>{nowPlaying?.artist || 'Live Radio'}</Text>
             <TouchableOpacity testID="play-radio-button" style={s.mPlay} onPress={() => setIsPlaying(!isPlaying)}><Ionicons name={isPlaying ? 'pause' : 'play'} size={32} color="#fff" /></TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/recently-played')} style={s.mRecentLink}>
+              <Ionicons name="time-outline" size={14} color={Colors.secondary} />
+              <Text style={s.mRecentTxt}>Recently Played</Text>
+            </TouchableOpacity>
           </View>
           <View style={s.mQuick}>
             {[{icon:'musical-notes',label:'Request',c:Colors.primary,t:'/(tabs)/requests'},{icon:'newspaper',label:'News',c:Colors.secondary,t:'/(tabs)/news'},{icon:'gift',label:'Rewards',c:Colors.accent,t:'/(tabs)/rewards'}].map(q=>(
@@ -133,6 +137,9 @@ function WebLayout({ user, router, nowPlaying, news, shows, events, contests, po
               </TouchableOpacity>
               <TouchableOpacity style={s.wReqBtn} onPress={()=>router.push('/(tabs)/requests')}>
                 <Ionicons name="musical-notes" size={18} color={Colors.primary}/><Text style={s.wReqTxt}>REQUEST A SONG</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.wRecentBtn} onPress={()=>router.push('/recently-played')}>
+                <Ionicons name="time-outline" size={18} color={Colors.secondary}/><Text style={s.wRecentTxt}>Recently Played</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -276,6 +283,8 @@ const s = StyleSheet.create({
   mDj:{fontSize:FontSizes.sm,color:Colors.textSecondary,fontWeight:'600'},mSong:{fontSize:FontSizes.xxl,fontWeight:'800',color:'#fff',textAlign:'center',marginBottom:4},
   mArtist:{fontSize:FontSizes.lg,color:Colors.textSecondary,textAlign:'center',marginBottom:Spacing.lg},
   mPlay:{width:72,height:72,borderRadius:36,backgroundColor:Colors.primary,alignItems:'center',justifyContent:'center'},
+  mRecentLink:{flexDirection:'row',alignItems:'center',gap:6,marginTop:Spacing.md,paddingVertical:8,paddingHorizontal:12,borderRadius:BorderRadius.round,backgroundColor:'rgba(255,255,255,0.05)'},
+  mRecentTxt:{fontSize:FontSizes.xs,color:Colors.secondary,fontWeight:'600',letterSpacing:1},
   mQuick:{flexDirection:'row',justifyContent:'space-around',marginVertical:Spacing.lg},mQBtn:{alignItems:'center',backgroundColor:Colors.surface,borderRadius:BorderRadius.lg,padding:Spacing.md,width:90,borderWidth:1,borderColor:Colors.border},
   mQLbl:{fontSize:FontSizes.xs,color:Colors.textSecondary,fontWeight:'600',marginTop:6},
   secTitle:{fontSize:FontSizes.xs,fontWeight:'800',color:Colors.secondary,letterSpacing:3,marginBottom:Spacing.md,marginTop:Spacing.sm},
@@ -309,6 +318,8 @@ const s = StyleSheet.create({
   wHeroBtns:{flexDirection:'row',gap:16},wPlayBtn:{flexDirection:'row',alignItems:'center',gap:8,backgroundColor:Colors.primary,borderRadius:BorderRadius.round,paddingHorizontal:28,paddingVertical:14},
   wPlayTxt:{fontSize:13,fontWeight:'800',color:'#fff',letterSpacing:1},wReqBtn:{flexDirection:'row',alignItems:'center',gap:8,backgroundColor:'transparent',borderRadius:BorderRadius.round,paddingHorizontal:24,paddingVertical:14,borderWidth:1,borderColor:Colors.primary},
   wReqTxt:{fontSize:12,fontWeight:'700',color:Colors.primary,letterSpacing:1},
+  wRecentBtn:{flexDirection:'row',alignItems:'center',gap:8,backgroundColor:'rgba(255,255,255,0.05)',borderRadius:BorderRadius.round,paddingHorizontal:20,paddingVertical:14},
+  wRecentTxt:{fontSize:12,fontWeight:'700',color:Colors.secondary,letterSpacing:1},
   wHeroRight:{alignItems:'flex-end'},wTagBig:{fontSize:64,fontWeight:'900',color:'rgba(255,255,255,0.06)',letterSpacing:8,lineHeight:70},
   // Container
   wContainer:{maxWidth:1200,alignSelf:'center',width:'100%',paddingHorizontal:32},

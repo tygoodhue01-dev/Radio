@@ -303,3 +303,10 @@ export async function getPodcastsApi() {
   if (!res.ok) return [];
   return res.json();
 }
+
+// Recently Played
+export async function getRecentlyPlayedApi(limit: number = 50) {
+  const res = await fetch(`${API_BASE}/recently-played?limit=${limit}`);
+  if (!res.ok) return [];
+  return res.json();
+}

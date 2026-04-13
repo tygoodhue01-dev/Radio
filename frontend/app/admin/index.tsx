@@ -26,18 +26,35 @@ export default function AdminScreen() {
   const [stats, setStats] = useState<any>({});
   const [users, setUsers] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
+  const [allNews, setAllNews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // News creation
   const [newsTitle, setNewsTitle] = useState('');
   const [newsContent, setNewsContent] = useState('');
   const [newsCategory, setNewsCategory] = useState('general');
+  
+  // Now Playing
   const [npSong, setNpSong] = useState('');
   const [npArtist, setNpArtist] = useState('');
+  const [streamUrl, setStreamUrl] = useState('https://streaming.live365.com/a72818');
+  
+  // Edit modals
+  const [editUserModal, setEditUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editNewsModal, setEditNewsModal] = useState(false);
+  const [editingNews, setEditingNews] = useState<any>(null);
 
   const loadData = useCallback(async () => {
     try {
-      const [s, u, r] = await Promise.all([getAdminStatsApi(), getAdminUsersApi(), getAdminRequestsApi()]);
-      setStats(s); setUsers(u); setRequests(r);
+      const [s, u, r, n] = await Promise.all([
+        getAdminStatsApi(), 
+        getAdminUsersApi(), 
+        getAdminRequestsApi(),
+        getNewsApi()
+      ]);
+      setStats(s); setUsers(u); setRequests(r); setAllNews(n);
     } catch (e) { console.error(e); }
     setLoading(false);
   }, []);
@@ -61,6 +78,81 @@ export default function AdminScreen() {
   };
 
   const handleRequestAction = async (requestId: string, status: string) => { await updateRequestStatusApi(requestId, status); await loadData(); };
+  
+  const handleDeleteRequest = (requestId: string, songTitle: string) => {
+    const confirmDelete = Platform.OS === 'web' 
+      ? window.confirm(`Delete request for "${songTitle}"?`)
+      : true;
+    
+    if (Platform.OS === 'web') {
+      if (confirmDelete) {
+        deleteRequestApi(requestId).then(() => loadData());
+      }
+    } else {
+      Alert.alert('Delete Request', `Delete request for "${songTitle}"?`, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: async () => { await deleteRequestApi(requestId); await loadData(); } },
+      ]);
+    }
+  };
+
+  const handleEditUser = (userToEdit: any) => {
+    setEditingUser(userToEdit);
+    setEditUserModal(true);
+  };
+
+  const handleSaveUser = async () => {
+    if (!editingUser) return;
+    try {
+      await updateUserRoleApi(editingUser.user_id, editingUser.role);
+      setEditUserModal(false);
+      setEditingUser(null);
+      await loadData();
+      Alert.alert('Success', 'User updated');
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    }
+  };
+
+  const handleEditNews = (newsItem: any) => {
+    setEditingNews(newsItem);
+    setEditNewsModal(true);
+  };
+
+  const handleSaveNews = async () => {
+    if (!editingNews) return;
+    try {
+      await updateNewsApi(editingNews.news_id, {
+        title: editingNews.title,
+        content: editingNews.content,
+        category: editingNews.category,
+        summary: editingNews.summary
+      });
+      setEditNewsModal(false);
+      setEditingNews(null);
+      await loadData();
+      Alert.alert('Success', 'News article updated');
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    }
+  };
+
+  const handleDeleteNews = (newsId: string, title: string) => {
+    const confirmDelete = Platform.OS === 'web'
+      ? window.confirm(`Delete article "${title}"?`)
+      : true;
+    
+    if (Platform.OS === 'web') {
+      if (confirmDelete) {
+        deleteNewsApi(newsId).then(() => loadData());
+      }
+    } else {
+      Alert.alert('Delete Article', `Delete "${title}"?`, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: async () => { await deleteNewsApi(newsId); await loadData(); } },
+      ]);
+    }
+  };
 
   const handleCreateNews = async () => {
     if (!newsTitle.trim() || !newsContent.trim()) { Alert.alert('Required', 'Title and content are required'); return; }
@@ -91,6 +183,7 @@ export default function AdminScreen() {
     { key: 'requests', label: 'Requests', icon: 'musical-notes', roles: ['admin', 'dj'] },
     { key: 'users', label: 'Users', icon: 'people', roles: ['admin'] },
     { key: 'content', label: 'Publish News', icon: 'create', roles: ['admin', 'editor'] },
+    { key: 'manage-news', label: 'Manage News', icon: 'newspaper', roles: ['admin', 'editor'] },
   ];
 
   const pendingCount = requests.filter(r => r.status === 'pending').length;
@@ -141,8 +234,26 @@ export default function AdminScreen() {
   const renderNowPlaying = () => (
     <View>
       <Text style={st.panelTitle}>Update Now Playing</Text>
-      <Text style={st.panelSub}>Set the currently playing song that listeners see on the homepage.</Text>
-      <View style={[st.formCard, isWeb && { maxWidth: 500 }]}>
+      <Text style={st.panelSub}>Set the currently playing song and configure stream metadata source.</Text>
+      
+      {/* Stream Configuration */}
+      <View style={[st.formCard, isWeb && { maxWidth: 600 }, { marginBottom: Spacing.lg }]}>
+        <Text style={st.inputLabel}>STREAM URL / METADATA SOURCE</Text>
+        <TextInput 
+          style={st.input} 
+          value={streamUrl} 
+          onChangeText={setStreamUrl} 
+          placeholder="https://streaming.live365.com/a72818" 
+          placeholderTextColor={Colors.textMuted} 
+        />
+        <Text style={{ fontSize: FontSizes.xs, color: Colors.textMuted, marginTop: 4 }}>
+          Configure the API address for automatic now playing updates from your stream provider
+        </Text>
+      </View>
+
+      {/* Manual Update */}
+      <View style={[st.formCard, isWeb && { maxWidth: 600 }]}>
+        <Text style={[st.inputLabel, { marginTop: 0 }]}>MANUAL UPDATE</Text>
         <Text style={st.inputLabel}>SONG TITLE</Text>
         <TextInput testID="np-song-input" style={st.input} value={npSong} onChangeText={setNpSong} placeholder="Enter song title" placeholderTextColor={Colors.textMuted} />
         <Text style={st.inputLabel}>ARTIST</Text>
@@ -157,15 +268,7 @@ export default function AdminScreen() {
   const renderRequests = () => (
     <View>
       <Text style={st.panelTitle}>Song Requests</Text>
-      <Text style={st.panelSub}>Approve or mark requests as played. Only approved requests show publicly.</Text>
-      {/* Filter tabs */}
-      <View style={st.filterRow}>
-        {['all', 'pending', 'approved', 'played'].map(f => (
-          <TouchableOpacity key={f} style={[st.filterBtn, f === 'all' && st.filterActive]} onPress={() => {}}>
-            <Text style={[st.filterTxt, f === 'all' && st.filterTxtActive]}>{f.toUpperCase()}{f === 'pending' ? ` (${pendingCount})` : ''}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <Text style={st.panelSub}>Mark pending requests as played or delete them.</Text>
       {/* Requests table */}
       {isWeb ? (
         <View style={st.table}>
@@ -175,7 +278,7 @@ export default function AdminScreen() {
             <Text style={[st.th, { flex: 1.5 }]}>Requested By</Text>
             <Text style={[st.th, { flex: 1 }]}>Message</Text>
             <Text style={[st.th, { flex: 0.8 }]}>Status</Text>
-            <Text style={[st.th, { flex: 1 }]}>Actions</Text>
+            <Text style={[st.th, { flex: 1.2 }]}>Actions</Text>
           </View>
           {requests.map(req => (
             <View key={req.request_id} style={st.tableRow}>
@@ -184,26 +287,21 @@ export default function AdminScreen() {
               <Text style={[st.td, { flex: 1.5 }]}>{req.user_name}</Text>
               <Text style={[st.td, { flex: 1, fontStyle: req.message ? 'italic' : 'normal' }]} numberOfLines={1}>{req.message || '—'}</Text>
               <View style={{ flex: 0.8, justifyContent: 'center' }}>
-                <View style={[st.statusBadge, req.status === 'approved' && st.statusApproved, req.status === 'played' && st.statusPlayed]}>
-                  <Text style={[st.statusTxt, req.status === 'approved' && { color: Colors.success }, req.status === 'played' && { color: Colors.secondary }]}>{req.status?.toUpperCase()}</Text>
+                <View style={[st.statusBadge, (req.status === 'approved' || req.status === 'played') && st.statusPlayed]}>
+                  <Text style={[st.statusTxt, (req.status === 'approved' || req.status === 'played') && { color: Colors.secondary }]}>
+                    {req.status === 'pending' ? 'PENDING' : 'PLAYED'}
+                  </Text>
                 </View>
               </View>
-              <View style={{ flex: 1, flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+              <View style={{ flex: 1.2, flexDirection: 'row', gap: 8, alignItems: 'center' }}>
                 {req.status === 'pending' && (
-                  <>
-                    <TouchableOpacity testID={`approve-${req.request_id}`} style={st.actionBtn} onPress={() => handleRequestAction(req.request_id, 'approved')}>
-                      <Ionicons name="checkmark" size={16} color={Colors.success} /><Text style={[st.actionTxt, { color: Colors.success }]}>Approve</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity testID={`play-${req.request_id}`} style={st.actionBtn} onPress={() => handleRequestAction(req.request_id, 'played')}>
-                      <Ionicons name="play" size={16} color={Colors.primary} /><Text style={[st.actionTxt, { color: Colors.primary }]}>Played</Text>
-                    </TouchableOpacity>
-                  </>
-                )}
-                {req.status === 'approved' && (
-                  <TouchableOpacity style={st.actionBtn} onPress={() => handleRequestAction(req.request_id, 'played')}>
-                    <Ionicons name="play" size={16} color={Colors.primary} /><Text style={[st.actionTxt, { color: Colors.primary }]}>Mark Played</Text>
+                  <TouchableOpacity testID={`play-${req.request_id}`} style={st.actionBtn} onPress={() => handleRequestAction(req.request_id, 'played')}>
+                    <Ionicons name="checkmark-circle" size={16} color={Colors.success} /><Text style={[st.actionTxt, { color: Colors.success }]}>Played</Text>
                   </TouchableOpacity>
                 )}
+                <TouchableOpacity style={st.deleteBtn} onPress={() => handleDeleteRequest(req.request_id, req.song_title)}>
+                  <Ionicons name="trash" size={14} color={Colors.error} /><Text style={{ color: Colors.error, fontSize: 12, fontWeight: '600' }}>Delete</Text>
+                </TouchableOpacity>
               </View>
             </View>
           ))}
@@ -211,15 +309,26 @@ export default function AdminScreen() {
       ) : (
         requests.map(req => (
           <View key={req.request_id} style={st.mReqCard}>
-            <View style={st.mReqTop}><Text style={st.mReqSong}>{req.song_title}</Text><View style={[st.statusBadge, req.status === 'approved' && st.statusApproved, req.status === 'played' && st.statusPlayed]}><Text style={[st.statusTxt, req.status === 'approved' && { color: Colors.success }, req.status === 'played' && { color: Colors.secondary }]}>{req.status?.toUpperCase()}</Text></View></View>
+            <View style={st.mReqTop}>
+              <Text style={st.mReqSong}>{req.song_title}</Text>
+              <View style={[st.statusBadge, (req.status === 'approved' || req.status === 'played') && st.statusPlayed]}>
+                <Text style={[st.statusTxt, (req.status === 'approved' || req.status === 'played') && { color: Colors.secondary }]}>
+                  {req.status === 'pending' ? 'PENDING' : 'PLAYED'}
+                </Text>
+              </View>
+            </View>
             {req.artist ? <Text style={st.mReqArtist}>{req.artist}</Text> : null}
             <Text style={st.mReqBy}>{req.user_name}</Text>
-            {req.status === 'pending' && (
-              <View style={st.mReqActions}>
-                <TouchableOpacity style={[st.mActionBtn, { backgroundColor: 'rgba(34,197,94,0.15)' }]} onPress={() => handleRequestAction(req.request_id, 'approved')}><Ionicons name="checkmark" size={16} color={Colors.success} /><Text style={{ color: Colors.success, fontWeight: '700', fontSize: 12 }}>Approve</Text></TouchableOpacity>
-                <TouchableOpacity style={[st.mActionBtn, { backgroundColor: 'rgba(255,0,127,0.15)' }]} onPress={() => handleRequestAction(req.request_id, 'played')}><Ionicons name="play" size={16} color={Colors.primary} /><Text style={{ color: Colors.primary, fontWeight: '700', fontSize: 12 }}>Played</Text></TouchableOpacity>
-              </View>
-            )}
+            <View style={st.mReqActions}>
+              {req.status === 'pending' && (
+                <TouchableOpacity style={[st.mActionBtn, { backgroundColor: 'rgba(34,197,94,0.15)' }]} onPress={() => handleRequestAction(req.request_id, 'played')}>
+                  <Ionicons name="checkmark-circle" size={16} color={Colors.success} /><Text style={{ color: Colors.success, fontWeight: '700', fontSize: 12 }}>Played</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={[st.mActionBtn, { backgroundColor: 'rgba(239,68,68,0.15)' }]} onPress={() => handleDeleteRequest(req.request_id, req.song_title)}>
+                <Ionicons name="trash" size={16} color={Colors.error} /><Text style={{ color: Colors.error, fontWeight: '700', fontSize: 12 }}>Delete</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ))
       )}
@@ -229,7 +338,7 @@ export default function AdminScreen() {
   const renderUsers = () => (
     <View>
       <Text style={st.panelTitle}>User Management</Text>
-      <Text style={st.panelSub}>Manage user roles and accounts. Click a role badge to change it.</Text>
+      <Text style={st.panelSub}>Edit user details, manage roles, or remove accounts.</Text>
       {isWeb ? (
         <View style={st.table}>
           <View style={st.tableHeader}>
@@ -237,7 +346,7 @@ export default function AdminScreen() {
             <Text style={[st.th, { flex: 2 }]}>Email</Text>
             <Text style={[st.th, { flex: 1 }]}>Role</Text>
             <Text style={[st.th, { flex: 1 }]}>Joined</Text>
-            <Text style={[st.th, { flex: 1 }]}>Actions</Text>
+            <Text style={[st.th, { flex: 1.5 }]}>Actions</Text>
           </View>
           {users.map(u => (
             <View key={u.user_id} style={st.tableRow}>
@@ -249,7 +358,10 @@ export default function AdminScreen() {
                 </TouchableOpacity>
               </View>
               <Text style={[st.td, { flex: 1 }]}>{new Date(u.created_at).toLocaleDateString()}</Text>
-              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ flex: 1.5, flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                <TouchableOpacity onPress={() => handleEditUser(u)} style={st.actionBtn}>
+                  <Ionicons name="create" size={14} color={Colors.accent} /><Text style={{ color: Colors.accent, fontSize: 12, fontWeight: '600' }}>Edit</Text>
+                </TouchableOpacity>
                 <TouchableOpacity onPress={() => handleDeleteUser(u.user_id, u.name)} style={st.deleteBtn}>
                   <Ionicons name="trash" size={14} color={Colors.error} /><Text style={{ color: Colors.error, fontSize: 12, fontWeight: '600' }}>Remove</Text>
                 </TouchableOpacity>
@@ -261,7 +373,12 @@ export default function AdminScreen() {
         users.map(u => (
           <View key={u.user_id} style={st.mUserCard}>
             <View style={st.mUserInfo}><Text style={st.mUserName}>{u.name}</Text><Text style={st.mUserEmail}>{u.email}</Text></View>
-            <TouchableOpacity style={[st.roleBadge, { borderColor: getRoleColor(u.role) }]} onPress={() => handleRoleChange(u.user_id, u.role)}><Text style={[st.roleTxt, { color: getRoleColor(u.role) }]}>{u.role?.toUpperCase()}</Text></TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+              <TouchableOpacity style={[st.roleBadge, { borderColor: getRoleColor(u.role) }]} onPress={() => handleRoleChange(u.user_id, u.role)}><Text style={[st.roleTxt, { color: getRoleColor(u.role) }]}>{u.role?.toUpperCase()}</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => handleEditUser(u)} style={{ padding: 8 }}>
+                <Ionicons name="create" size={20} color={Colors.accent} />
+              </TouchableOpacity>
+            </View>
           </View>
         ))
       )}
@@ -292,6 +409,44 @@ export default function AdminScreen() {
     </View>
   );
 
+  const renderManageNews = () => (
+    <View>
+      <Text style={st.panelTitle}>Manage News Articles</Text>
+      <Text style={st.panelSub}>View, edit, or delete published news articles.</Text>
+      {allNews.length === 0 ? (
+        <Text style={{ color: Colors.textMuted, textAlign: 'center', marginTop: 40 }}>No news articles yet</Text>
+      ) : (
+        <View style={st.table}>
+          <View style={st.tableHeader}>
+            <Text style={[st.th, { flex: 2.5 }]}>Title</Text>
+            <Text style={[st.th, { flex: 1 }]}>Category</Text>
+            <Text style={[st.th, { flex: 1 }]}>Published</Text>
+            <Text style={[st.th, { flex: 1.5 }]}>Actions</Text>
+          </View>
+          {allNews.map(article => (
+            <View key={article.news_id} style={st.tableRow}>
+              <Text style={[st.td, { flex: 2.5, fontWeight: '600', color: '#fff' }]} numberOfLines={2}>{article.title}</Text>
+              <View style={{ flex: 1, justifyContent: 'center' }}>
+                <View style={[st.statusBadge, { borderColor: Colors.accent }]}>
+                  <Text style={[st.statusTxt, { color: Colors.accent }]}>{article.category?.toUpperCase()}</Text>
+                </View>
+              </View>
+              <Text style={[st.td, { flex: 1 }]}>{new Date(article.created_at).toLocaleDateString()}</Text>
+              <View style={{ flex: 1.5, flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                <TouchableOpacity onPress={() => handleEditNews(article)} style={st.actionBtn}>
+                  <Ionicons name="create" size={14} color={Colors.accent} /><Text style={{ color: Colors.accent, fontSize: 12, fontWeight: '600' }}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDeleteNews(article.news_id, article.title)} style={st.deleteBtn}>
+                  <Ionicons name="trash" size={14} color={Colors.error} /><Text style={{ color: Colors.error, fontSize: 12, fontWeight: '600' }}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+
   const renderPanel = () => {
     if (loading) return <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 60 }} />;
     switch (tab) {
@@ -300,6 +455,7 @@ export default function AdminScreen() {
       case 'requests': return renderRequests();
       case 'users': return renderUsers();
       case 'content': return renderContent();
+      case 'manage-news': return renderManageNews();
     }
   };
 
@@ -336,6 +492,72 @@ export default function AdminScreen() {
             <View style={{ height: 60 }} />
           </ScrollView>
         </View>
+
+        {/* Edit User Modal */}
+        <Modal visible={editUserModal} transparent animationType="fade">
+          <View style={st.modalOverlay}>
+            <View style={st.modalContent}>
+              <Text style={st.modalTitle}>Edit User</Text>
+              {editingUser && (
+                <View>
+                  <Text style={st.inputLabel}>NAME</Text>
+                  <TextInput style={st.input} value={editingUser.name} onChangeText={(val) => setEditingUser({...editingUser, name: val})} />
+                  <Text style={st.inputLabel}>EMAIL</Text>
+                  <TextInput style={st.input} value={editingUser.email} onChangeText={(val) => setEditingUser({...editingUser, email: val})} />
+                  <Text style={st.inputLabel}>ROLE</Text>
+                  <View style={st.catRow}>
+                    {['listener', 'editor', 'dj', 'admin'].map(role => (
+                      <TouchableOpacity key={role} style={[st.catBtn, editingUser.role === role && st.catActive]} onPress={() => setEditingUser({...editingUser, role})}>
+                        <Text style={[st.catTxt, editingUser.role === role && st.catTxtActive]}>{role.toUpperCase()}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
+                    <TouchableOpacity style={[st.primaryBtn, { flex: 1 }]} onPress={handleSaveUser}>
+                      <Text style={st.primaryBtnTxt}>SAVE</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[st.deleteBtn, { flex: 1, paddingVertical: 12 }]} onPress={() => { setEditUserModal(false); setEditingUser(null); }}>
+                      <Text style={{ color: Colors.error, fontWeight: '700' }}>CANCEL</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
+        </Modal>
+
+        {/* Edit News Modal */}
+        <Modal visible={editNewsModal} transparent animationType="fade">
+          <View style={st.modalOverlay}>
+            <View style={[st.modalContent, { maxWidth: 600 }]}>
+              <Text style={st.modalTitle}>Edit News Article</Text>
+              {editingNews && (
+                <View>
+                  <Text style={st.inputLabel}>TITLE</Text>
+                  <TextInput style={st.input} value={editingNews.title} onChangeText={(val) => setEditingNews({...editingNews, title: val})} />
+                  <Text style={st.inputLabel}>CONTENT</Text>
+                  <TextInput style={[st.input, { height: 140, textAlignVertical: 'top' }]} value={editingNews.content} onChangeText={(val) => setEditingNews({...editingNews, content: val})} multiline />
+                  <Text style={st.inputLabel}>CATEGORY</Text>
+                  <View style={st.catRow}>
+                    {['general', 'music', 'events', 'local', 'contests'].map(cat => (
+                      <TouchableOpacity key={cat} style={[st.catBtn, editingNews.category === cat && st.catActive]} onPress={() => setEditingNews({...editingNews, category: cat})}>
+                        <Text style={[st.catTxt, editingNews.category === cat && st.catTxtActive]}>{cat.toUpperCase()}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
+                    <TouchableOpacity style={[st.primaryBtn, { flex: 1 }]} onPress={handleSaveNews}>
+                      <Text style={st.primaryBtnTxt}>SAVE</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[st.deleteBtn, { flex: 1, paddingVertical: 12 }]} onPress={() => { setEditNewsModal(false); setEditingNews(null); }}>
+                      <Text style={{ color: Colors.error, fontWeight: '700' }}>CANCEL</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   }
@@ -359,6 +581,67 @@ export default function AdminScreen() {
         {renderPanel()}
         <View style={{ height: 60 }} />
       </ScrollView>
+
+      {/* Modals for mobile too */}
+      <Modal visible={editUserModal} transparent animationType="fade">
+        <View style={st.modalOverlay}>
+          <View style={st.modalContent}>
+            <Text style={st.modalTitle}>Edit User</Text>
+            {editingUser && (
+              <View>
+                <Text style={st.inputLabel}>ROLE</Text>
+                <View style={st.catRow}>
+                  {['listener', 'editor', 'dj', 'admin'].map(role => (
+                    <TouchableOpacity key={role} style={[st.catBtn, editingUser.role === role && st.catActive]} onPress={() => setEditingUser({...editingUser, role})}>
+                      <Text style={[st.catTxt, editingUser.role === role && st.catTxtActive]}>{role.toUpperCase()}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
+                  <TouchableOpacity style={[st.primaryBtn, { flex: 1 }]} onPress={handleSaveUser}>
+                    <Text style={st.primaryBtnTxt}>SAVE</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[st.deleteBtn, { flex: 1, paddingVertical: 12 }]} onPress={() => { setEditUserModal(false); setEditingUser(null); }}>
+                    <Text style={{ color: Colors.error, fontWeight: '700' }}>CANCEL</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={editNewsModal} transparent animationType="fade">
+        <View style={st.modalOverlay}>
+          <View style={st.modalContent}>
+            <Text style={st.modalTitle}>Edit Article</Text>
+            {editingNews && (
+              <ScrollView>
+                <Text style={st.inputLabel}>TITLE</Text>
+                <TextInput style={st.input} value={editingNews.title} onChangeText={(val) => setEditingNews({...editingNews, title: val})} />
+                <Text style={st.inputLabel}>CONTENT</Text>
+                <TextInput style={[st.input, { height: 140, textAlignVertical: 'top' }]} value={editingNews.content} onChangeText={(val) => setEditingNews({...editingNews, content: val})} multiline />
+                <Text style={st.inputLabel}>CATEGORY</Text>
+                <View style={st.catRow}>
+                  {['general', 'music', 'events', 'local'].map(cat => (
+                    <TouchableOpacity key={cat} style={[st.catBtn, editingNews.category === cat && st.catActive]} onPress={() => setEditingNews({...editingNews, category: cat})}>
+                      <Text style={[st.catTxt, editingNews.category === cat && st.catTxtActive]}>{cat.toUpperCase()}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
+                  <TouchableOpacity style={[st.primaryBtn, { flex: 1 }]} onPress={handleSaveNews}>
+                    <Text style={st.primaryBtnTxt}>SAVE</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[st.deleteBtn, { flex: 1, paddingVertical: 12 }]} onPress={() => { setEditNewsModal(false); setEditingNews(null); }}>
+                    <Text style={{ color: Colors.error, fontWeight: '700' }}>CANCEL</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -467,4 +750,9 @@ const st = StyleSheet.create({
   analyticsInfo: { flex: 1 },
   analyticsTitle: { fontSize: FontSizes.lg, fontWeight: '800', color: Colors.white, marginBottom: 4 },
   analyticsDesc: { fontSize: FontSizes.sm, color: Colors.textSecondary },
+  
+  // Modals
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },
+  modalContent: { backgroundColor: Colors.surface, borderRadius: BorderRadius.xl, padding: 24, width: '100%', maxWidth: 500, borderWidth: 1, borderColor: Colors.border },
+  modalTitle: { fontSize: 20, fontWeight: '900', color: Colors.primary, marginBottom: 20, letterSpacing: 2 },
 });

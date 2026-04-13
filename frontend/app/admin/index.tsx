@@ -895,6 +895,69 @@ export default function AdminScreen() {
             </View>
           </View>
         </Modal>
+
+        {/* Schedule Modal - Web */}
+        <Modal visible={scheduleModal} transparent animationType="fade">
+          <View style={st.modalOverlay}>
+            <View style={[st.modalContent, { maxWidth: 600 }]}>
+              <Text style={st.modalTitle}>{editingSchedule?.schedule_id ? 'Edit' : 'Add'} Time Slot</Text>
+              {editingSchedule && (
+                <ScrollView>
+                  <Text style={st.inputLabel}>DAY OF WEEK</Text>
+                  <View style={st.catRow}>
+                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                      <TouchableOpacity key={day} style={[st.catBtn, editingSchedule.day_of_week === day && st.catActive]} onPress={() => setEditingSchedule({...editingSchedule, day_of_week: day})}>
+                        <Text style={[st.catTxt, editingSchedule.day_of_week === day && st.catTxtActive]}>{day.substring(0,3).toUpperCase()}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <Text style={st.inputLabel}>TIME SLOT</Text>
+                  <TextInput style={st.input} value={editingSchedule.time_slot} onChangeText={(val) => setEditingSchedule({...editingSchedule, time_slot: val})} placeholder="e.g., 6:00 AM - 9:00 AM" placeholderTextColor={Colors.textMuted} />
+                  <Text style={st.inputLabel}>SHOW NAME</Text>
+                  <TextInput style={st.input} value={editingSchedule.show_name} onChangeText={(val) => setEditingSchedule({...editingSchedule, show_name: val})} placeholder="Show name" placeholderTextColor={Colors.textMuted} />
+                  <Text style={st.inputLabel}>DJ NAME</Text>
+                  <TextInput style={st.input} value={editingSchedule.dj_name} onChangeText={(val) => setEditingSchedule({...editingSchedule, dj_name: val})} placeholder="DJ name" placeholderTextColor={Colors.textMuted} />
+                  <Text style={st.inputLabel}>DESCRIPTION (OPTIONAL)</Text>
+                  <TextInput style={[st.input, { height: 80, textAlignVertical: 'top' }]} value={editingSchedule.description || ''} onChangeText={(val) => setEditingSchedule({...editingSchedule, description: val})} placeholder="Brief description" placeholderTextColor={Colors.textMuted} multiline />
+                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
+                    <TouchableOpacity style={[st.primaryBtn, { flex: 1 }]} onPress={handleSaveScheduleSlot}>
+                      <Text style={st.primaryBtnTxt}>SAVE</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[st.deleteBtn, { flex: 1, paddingVertical: 12 }]} onPress={() => { setScheduleModal(false); setEditingSchedule(null); }}>
+                      <Text style={{ color: Colors.error, fontWeight: '700' }}>CANCEL</Text>
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
+              )}
+            </View>
+          </View>
+        </Modal>
+
+        {/* Email Modal - Web */}
+        <Modal visible={emailModal} transparent animationType="fade">
+          <View style={st.modalOverlay}>
+            <View style={[st.modalContent, { maxWidth: 600 }]}>
+              <Text style={st.modalTitle}>Send Email to Applicant</Text>
+              {emailingApplicant && (
+                <ScrollView>
+                  <Text style={{ color: Colors.textSecondary, marginBottom: 16 }}>To: {emailingApplicant.email}</Text>
+                  <Text style={st.inputLabel}>SUBJECT</Text>
+                  <TextInput style={st.input} value={emailSubject} onChangeText={setEmailSubject} placeholder="Email subject" placeholderTextColor={Colors.textMuted} />
+                  <Text style={st.inputLabel}>MESSAGE</Text>
+                  <TextInput style={[st.input, { height: 140, textAlignVertical: 'top' }]} value={emailMessage} onChangeText={setEmailMessage} placeholder="Your message..." placeholderTextColor={Colors.textMuted} multiline />
+                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
+                    <TouchableOpacity style={[st.primaryBtn, { flex: 1 }]} onPress={handleSendEmailToApplicant}>
+                      <Text style={st.primaryBtnTxt}>SEND EMAIL</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[st.deleteBtn, { flex: 1, paddingVertical: 12 }]} onPress={() => { setEmailModal(false); setEmailingApplicant(null); }}>
+                      <Text style={{ color: Colors.error, fontWeight: '700' }}>CANCEL</Text>
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
+              )}
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   }

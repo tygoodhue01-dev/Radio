@@ -112,6 +112,16 @@ export async function createNewsApi(data: any) {
   return result;
 }
 
+export async function updateNewsApi(newsId: string, data: any) {
+  const res = await authFetch(`${API_BASE}/news/${newsId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+  const result = await res.json();
+  if (!res.ok) throw new Error(formatError(result.detail));
+  return result;
+}
+
 export async function deleteNewsApi(newsId: string) {
   const res = await authFetch(`${API_BASE}/news/${newsId}`, { method: 'DELETE' });
   if (!res.ok) throw new Error('Failed to delete');
@@ -139,6 +149,12 @@ export async function createRequestApi(data: { song_title: string; artist?: stri
 export async function updateRequestStatusApi(requestId: string, status: string) {
   const res = await authFetch(`${API_BASE}/requests/${requestId}/status?status=${status}`, { method: 'PUT' });
   if (!res.ok) throw new Error('Failed to update');
+  return res.json();
+}
+
+export async function deleteRequestApi(requestId: string) {
+  const res = await authFetch(`${API_BASE}/requests/${requestId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Failed to delete request');
   return res.json();
 }
 

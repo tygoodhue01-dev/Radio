@@ -774,6 +774,13 @@ async def update_request_status(request_id: str, status: str, user: dict = Depen
         raise HTTPException(status_code=404, detail="Request not found")
     return {"message": f"Status updated to {status}"}
 
+@api_router.delete("/requests/{request_id}")
+async def delete_request(request_id: str, user: dict = Depends(require_roles("admin", "dj"))):
+    result = await db.song_requests.delete_one({"request_id": request_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Request not found")
+    return {"message": "Request deleted"}
+
 @api_router.get("/requests/chat")
 async def get_chat(limit: int = 50):
     messages = await db.request_chat.find({}, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)

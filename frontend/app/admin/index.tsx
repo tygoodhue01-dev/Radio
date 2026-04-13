@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
-  Alert, RefreshControl, ActivityIndicator, Platform, useWindowDimensions
+  Alert, RefreshControl, ActivityIndicator, Platform, useWindowDimensions, Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,12 +10,12 @@ import { useAuth } from '@/src/contexts/AuthContext';
 import {
   getAdminUsersApi, getAdminStatsApi, updateUserRoleApi,
   getAdminRequestsApi, updateRequestStatusApi, createNewsApi,
-  updateNowPlayingApi, deleteUserApi
+  updateNowPlayingApi, deleteUserApi, getNewsApi, updateNewsApi, deleteNewsApi
 } from '@/src/services/api';
 import { Colors, Spacing, FontSizes, BorderRadius } from '@/src/theme';
 import { WebNavBar, WebFooter } from '@/src/components/WebShell';
 
-type AdminTab = 'overview' | 'users' | 'requests' | 'content' | 'nowplaying';
+type AdminTab = 'overview' | 'users' | 'requests' | 'content' | 'nowplaying' | 'manage-news';
 
 export default function AdminScreen() {
   const { user } = useAuth();

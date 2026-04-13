@@ -91,6 +91,31 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
+class UpdateProfileRequest(BaseModel):
+    name: Optional[str] = None
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    location: Optional[str] = None
+    favorite_genre: Optional[str] = None
+
+class SongRatingRequest(BaseModel):
+    song_id: str
+    song_title: str
+    artist: str
+    rating: int  # 1-5 stars
+
+class SongCommentRequest(BaseModel):
+    song_id: str
+    comment: str
+
+class PollCreate(BaseModel):
+    question: str
+    options: List[str]
+    ends_at: Optional[str] = None
+
+class PollVote(BaseModel):
+    option_index: int
+
 class NewsCreate(BaseModel):
     title: str
     content: str
@@ -262,6 +287,287 @@ async def refresh_token(request: Request):
 @api_router.post("/auth/logout")
 async def logout():
     return {"message": "Logged out successfully"}
+
+# ==================== USER PROFILE & PREFERENCES ====================
+@api_router.get("/users/me")
+async def get_my_profile(user: dict = Depends(get_current_user)):
+    # Get user stats
+    favorite_songs = await db.favorites.count_documents({"user_id": user["user_id"], "type": "song"})
+    total_ratings = await db.song_ratings.count_documents({"user_id": user["user_id"]})
+    
+    user["stats"] = {
+        "favorite_songs": favorite_songs,
+        "total_ratings": total_ratings
+    }
+    return user
+
+@api_router.put("/users/me")
+async def update_profile(req: UpdateProfileRequest, user: dict = Depends(get_current_user)):
+    update_data = {}
+    if req.name: update_data["name"] = req.name.strip()
+    if req.bio is not None: update_data["bio"] = req.bio.strip()
+    if req.avatar_url is not None: update_data["avatar_url"] = req.avatar_url
+    if req.location is not None: update_data["location"] = req.location
+    if req.favorite_genre is not None: update_data["favorite_genre"] = req.favorite_genre
+    
+    if update_data:
+        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        await db.users.update_one({"user_id": user["user_id"]}, {"$set": update_data})
+    
+    updated_user = await db.users.find_one({"user_id": user["user_id"]}, {"_id": 0, "password_hash": 0})
+    return updated_user
+
+@api_router.get("/users/{user_id}")
+async def get_user_profile(user_id: str):
+    user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0, "email": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get user stats
+    favorite_songs = await db.favorites.count_documents({"user_id": user_id, "type": "song"})
+    total_ratings = await db.song_ratings.count_documents({"user_id": user_id})
+    
+    user["stats"] = {
+        "favorite_songs": favorite_songs,
+        "total_ratings": total_ratings
+    }
+    return user
+
+# ==================== SONG RATINGS & FAVORITES ====================
+@api_router.post("/songs/rate")
+async def rate_song(req: SongRatingRequest, user: dict = Depends(get_current_user)):
+    if req.rating < 1 or req.rating > 5:
+        raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")
+    
+    rating_doc = {
+        "user_id": user["user_id"],
+        "user_name": user["name"],
+        "song_id": req.song_id,
+        "song_title": req.song_title,
+        "artist": req.artist,
+        "rating": req.rating,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Update or insert
+    await db.song_ratings.update_one(
+        {"user_id": user["user_id"], "song_id": req.song_id"},
+        {"$set": rating_doc},
+        upsert=True
+    )
+    
+    return {"message": "Rating saved", "rating": req.rating}
+
+@api_router.get("/songs/{song_id}/ratings")
+async def get_song_ratings(song_id: str):
+    ratings = await db.song_ratings.find({"song_id": song_id}, {"_id": 0}).to_list(100)
+    
+    if not ratings:
+        return {"average": 0, "count": 0, "ratings": []}
+    
+    avg = sum(r["rating"] for r in ratings) / len(ratings)
+    return {"average": round(avg, 1), "count": len(ratings), "ratings": ratings}
+
+@api_router.post("/songs/{song_id}/favorite")
+async def toggle_favorite(song_id: str, song_title: str = "", artist: str = "", user: dict = Depends(get_current_user)):
+    existing = await db.favorites.find_one({"user_id": user["user_id"], "song_id": song_id})
+    
+    if existing:
+        await db.favorites.delete_one({"user_id": user["user_id"], "song_id": song_id})
+        return {"message": "Removed from favorites", "favorited": False}
+    else:
+        fav_doc = {
+            "user_id": user["user_id"],
+            "type": "song",
+            "song_id": song_id,
+            "song_title": song_title,
+            "artist": artist,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.favorites.insert_one(fav_doc)
+        return {"message": "Added to favorites", "favorited": True}
+
+@api_router.get("/users/me/favorites")
+async def get_my_favorites(user: dict = Depends(get_current_user)):
+    favorites = await db.favorites.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return favorites
+
+# ==================== CHARTS & TRENDING ====================
+@api_router.get("/charts/top-rated")
+async def get_top_rated_songs(limit: int = 50):
+    # Aggregate ratings to get top songs
+    pipeline = [
+        {"$group": {
+            "_id": "$song_id",
+            "song_title": {"$first": "$song_title"},
+            "artist": {"$first": "$artist"},
+            "average_rating": {"$avg": "$rating"},
+            "rating_count": {"$sum": 1}
+        }},
+        {"$match": {"rating_count": {"$gte": 3}}},  # At least 3 ratings
+        {"$sort": {"average_rating": -1, "rating_count": -1}},
+        {"$limit": limit}
+    ]
+    
+    results = []
+    async for doc in db.song_ratings.aggregate(pipeline):
+        results.append({
+            "song_id": doc["_id"],
+            "song_title": doc["song_title"],
+            "artist": doc["artist"],
+            "average_rating": round(doc["average_rating"], 1),
+            "rating_count": doc["rating_count"]
+        })
+    
+    return results
+
+@api_router.get("/charts/most-played")
+async def get_most_played_songs(limit: int = 50):
+    # Get songs by play count from recently played
+    pipeline = [
+        {"$group": {
+            "_id": {"song_title": "$song_title", "artist": "$artist"},
+            "play_count": {"$sum": 1},
+            "last_played": {"$max": "$played_at"}
+        }},
+        {"$sort": {"play_count": -1}},
+        {"$limit": limit}
+    ]
+    
+    results = []
+    async for doc in db.recently_played.aggregate(pipeline):
+        results.append({
+            "song_title": doc["_id"]["song_title"],
+            "artist": doc["_id"]["artist"],
+            "play_count": doc["play_count"],
+            "last_played": doc["last_played"]
+        })
+    
+    return results
+
+@api_router.get("/charts/trending")
+async def get_trending_songs(limit: int = 20):
+    # Get songs played in last 7 days
+    seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    
+    pipeline = [
+        {"$match": {"played_at": {"$gte": seven_days_ago}}},
+        {"$group": {
+            "_id": {"song_title": "$song_title", "artist": "$artist"},
+            "play_count": {"$sum": 1},
+            "last_played": {"$max": "$played_at"}
+        }},
+        {"$sort": {"play_count": -1}},
+        {"$limit": limit}
+    ]
+    
+    results = []
+    async for doc in db.recently_played.aggregate(pipeline):
+        results.append({
+            "song_title": doc["_id"]["song_title"],
+            "artist": doc["_id"]["artist"],
+            "play_count": doc["play_count"],
+            "last_played": doc["last_played"]
+        })
+    
+    return results
+
+# ==================== POLLS ====================
+@api_router.post("/polls")
+async def create_poll(req: PollCreate, user: dict = Depends(require_roles("admin", "dj"))):
+    poll_doc = {
+        "poll_id": f"poll_{uuid.uuid4().hex[:12]}",
+        "question": req.question,
+        "options": [{"text": opt, "votes": 0} for opt in req.options],
+        "created_by": user["user_id"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "ends_at": req.ends_at,
+        "active": True
+    }
+    await db.polls.insert_one(poll_doc)
+    poll_doc.pop("_id")
+    return poll_doc
+
+@api_router.get("/polls")
+async def get_polls(active_only: bool = True):
+    query = {"active": True} if active_only else {}
+    polls = await db.polls.find(query, {"_id": 0}).sort("created_at", -1).to_list(20)
+    return polls
+
+@api_router.post("/polls/{poll_id}/vote")
+async def vote_poll(poll_id: str, req: PollVote, user: dict = Depends(get_current_user)):
+    # Check if already voted
+    existing_vote = await db.poll_votes.find_one({"poll_id": poll_id, "user_id": user["user_id"]})
+    if existing_vote:
+        raise HTTPException(status_code=400, detail="Already voted")
+    
+    # Record vote
+    vote_doc = {
+        "poll_id": poll_id,
+        "user_id": user["user_id"],
+        "option_index": req.option_index,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.poll_votes.insert_one(vote_doc)
+    
+    # Update poll
+    await db.polls.update_one(
+        {"poll_id": poll_id},
+        {"$inc": {f"options.{req.option_index}.votes": 1}}
+    )
+    
+    return {"message": "Vote recorded"}
+
+@api_router.get("/polls/{poll_id}")
+async def get_poll(poll_id: str):
+    poll = await db.polls.find_one({"poll_id": poll_id}, {"_id": 0})
+    if not poll:
+        raise HTTPException(status_code=404, detail="Poll not found")
+    return poll
+
+# ==================== ANALYTICS (Admin) ====================
+@api_router.get("/analytics/overview")
+async def get_analytics_overview(user: dict = Depends(require_roles("admin"))):
+    # Get various stats
+    total_users = await db.users.count_documents({})
+    total_songs_played = await db.recently_played.count_documents({})
+    total_ratings = await db.song_ratings.count_documents({})
+    total_requests = await db.song_requests.count_documents({})
+    
+    # Users in last 7 days
+    seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    new_users = await db.users.count_documents({"created_at": {"$gte": seven_days_ago}})
+    
+    # Songs played today
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0).isoformat()
+    songs_today = await db.recently_played.count_documents({"played_at": {"$gte": today}})
+    
+    return {
+        "total_users": total_users,
+        "new_users_7d": new_users,
+        "total_songs_played": total_songs_played,
+        "songs_played_today": songs_today,
+        "total_ratings": total_ratings,
+        "total_requests": total_requests
+    }
+
+@api_router.get("/analytics/users")
+async def get_user_analytics(user: dict = Depends(require_roles("admin"))):
+    # User growth by day (last 30 days)
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+    
+    users = await db.users.find(
+        {"created_at": {"$gte": thirty_days_ago.isoformat()}},
+        {"_id": 0, "created_at": 1}
+    ).to_list(1000)
+    
+    # Group by date
+    daily_signups = {}
+    for u in users:
+        date = u["created_at"][:10]  # YYYY-MM-DD
+        daily_signups[date] = daily_signups.get(date, 0) + 1
+    
+    return {"daily_signups": daily_signups}
 
 # ==================== NEWS ENDPOINTS ====================
 @api_router.get("/news")

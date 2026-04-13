@@ -872,5 +872,4 @@ const st = StyleSheet.create({
   modalContent: { backgroundColor: Colors.surface, borderRadius: BorderRadius.xl, padding: 24, width: '100%', maxWidth: 500, borderWidth: 1, borderColor: Colors.border },
   modalTitle: { fontSize: 20, fontWeight: '900', color: Colors.primary, marginBottom: 20, letterSpacing: 2 },
 });
-rimary, marginBottom: 20, letterSpacing: 2 },
-});
+

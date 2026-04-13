@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Image, RefreshControl, useWindowDimensions, Platform
+  Image, RefreshControl, useWindowDimensions, Platform, Share, Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ import {
   getContestsApi, getPodcastsApi, getDjsApi
 } from '@/src/services/api';
 import { Colors, Spacing, FontSizes, BorderRadius } from '@/src/theme';
+import AdvancedPlayer from '@/src/components/AdvancedPlayer';
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -28,6 +29,71 @@ export default function HomeScreen() {
   const [djs, setDjs] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showAdvancedPlayer, setShowAdvancedPlayer] = useState(false);
+  const [songRating, setSongRating] = useState(0);
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  const API_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+
+  const shareSong = async () => {
+    try {
+      await Share.share({
+        message: `🎵 Now Playing on The Beat 515: ${nowPlaying?.song_title} by ${nowPlaying?.artist}\n\nListen live: https://project-init-27.preview.emergentagent.com`,
+        title: 'Share Now Playing'
+      });
+    } catch (e) {
+      console.error('Share failed:', e);
+    }
+  };
+
+  const rateSong = async (rating: number) => {
+    if (!user) {
+      Alert.alert('Login Required', 'Please login to rate songs');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/songs/rate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${user.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          song_id: `${nowPlaying?.song_title}_${nowPlaying?.artist}`.replace(/\s/g, '_'),
+          song_title: nowPlaying?.song_title,
+          artist: nowPlaying?.artist,
+          rating
+        })
+      });
+      if (res.ok) {
+        setSongRating(rating);
+        Alert.alert('Success', `Rated ${rating} stars!`);
+      }
+    } catch (e) {
+      console.error('Rating failed:', e);
+    }
+  };
+
+  const toggleFavorite = async () => {
+    if (!user) {
+      Alert.alert('Login Required', 'Please login to favorite songs');
+      return;
+    }
+    try {
+      const songId = `${nowPlaying?.song_title}_${nowPlaying?.artist}`.replace(/\s/g, '_');
+      const res = await fetch(`${API_BASE}/api/songs/${songId}/favorite?song_title=${encodeURIComponent(nowPlaying?.song_title)}&artist=${encodeURIComponent(nowPlaying?.artist)}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${user.access_token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setIsFavorite(data.favorited);
+        Alert.alert('Success', data.message);
+      }
+    } catch (e) {
+      console.error('Favorite failed:', e);
+    }
+  };
 
   const loadData = useCallback(async () => {
     try {
@@ -69,10 +135,50 @@ export default function HomeScreen() {
             <View style={s.mLiveRow}><View style={s.mLiveBadge}><View style={s.mLiveDot} /><Text style={s.mLiveTxt}>LIVE</Text></View><Text style={s.mDj}>{nowPlaying?.dj_name || 'AutoDJ'}</Text></View>
             <Text style={s.mSong}>{nowPlaying?.song_title || 'The Beat 515'}</Text>
             <Text style={s.mArtist}>{nowPlaying?.artist || 'Live Radio'}</Text>
-            <TouchableOpacity testID="play-radio-button" style={s.mPlay} onPress={() => setIsPlaying(!isPlaying)}><Ionicons name={isPlaying ? 'pause' : 'play'} size={32} color="#fff" /></TouchableOpacity>
+            
+            {/* Rating Stars */}
+            {user && (
+              <View style={s.ratingRow}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <TouchableOpacity key={star} onPress={() => rateSong(star)}>
+                    <Ionicons 
+                      name={star <= songRating ? 'star' : 'star-outline'} 
+                      size={24} 
+                      color={star <= songRating ? Colors.accent : Colors.border} 
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* Action Buttons */}
+            <View style={s.actionRow}>
+              <TouchableOpacity testID="play-radio-button" style={s.mPlay} onPress={() => setIsPlaying(!isPlaying)}>
+                <Ionicons name={isPlaying ? 'pause' : 'play'} size={32} color="#fff" />
+              </TouchableOpacity>
+              
+              {user && (
+                <TouchableOpacity style={s.actionBtn} onPress={toggleFavorite}>
+                  <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={28} color={isFavorite ? Colors.primary : Colors.textSecondary} />
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity style={s.actionBtn} onPress={shareSong}>
+                <Ionicons name="share-social-outline" size={28} color={Colors.secondary} />
+              </TouchableOpacity>
+
+              <TouchableOpacity style={s.actionBtn} onPress={() => setShowAdvancedPlayer(true)}>
+                <Ionicons name="options-outline" size={28} color={Colors.secondary} />
+              </TouchableOpacity>
+            </View>
+
             <TouchableOpacity onPress={() => router.push('/recently-played')} style={s.mRecentLink}>
               <Ionicons name="time-outline" size={14} color={Colors.secondary} />
               <Text style={s.mRecentTxt}>Recently Played</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/charts')} style={s.mRecentLink}>
+              <Ionicons name="stats-chart-outline" size={14} color={Colors.accent} />
+              <Text style={[s.mRecentTxt, {color: Colors.accent}]}>Charts</Text>
             </TouchableOpacity>
           </View>
           <View style={s.mQuick}>
@@ -87,6 +193,15 @@ export default function HomeScreen() {
           <View style={{height:40}}/>
         </View>
       </ScrollView>
+
+      {/* Advanced Player Modal */}
+      <AdvancedPlayer 
+        visible={showAdvancedPlayer}
+        onClose={() => setShowAdvancedPlayer(false)}
+        nowPlaying={nowPlaying}
+        isPlaying={isPlaying}
+        onPlayPause={() => setIsPlaying(!isPlaying)}
+      />
     </SafeAreaView>
   );
 }
@@ -283,6 +398,9 @@ const s = StyleSheet.create({
   mDj:{fontSize:FontSizes.sm,color:Colors.textSecondary,fontWeight:'600'},mSong:{fontSize:FontSizes.xxl,fontWeight:'800',color:'#fff',textAlign:'center',marginBottom:4},
   mArtist:{fontSize:FontSizes.lg,color:Colors.textSecondary,textAlign:'center',marginBottom:Spacing.lg},
   mPlay:{width:72,height:72,borderRadius:36,backgroundColor:Colors.primary,alignItems:'center',justifyContent:'center'},
+  ratingRow:{flexDirection:'row',gap:6,marginTop:Spacing.md,marginBottom:Spacing.sm},
+  actionRow:{flexDirection:'row',alignItems:'center',gap:Spacing.md,marginTop:Spacing.md},
+  actionBtn:{width:48,height:48,borderRadius:24,backgroundColor:Colors.surface,alignItems:'center',justifyContent:'center',borderWidth:1,borderColor:Colors.border},
   mRecentLink:{flexDirection:'row',alignItems:'center',gap:6,marginTop:Spacing.md,paddingVertical:8,paddingHorizontal:12,borderRadius:BorderRadius.round,backgroundColor:'rgba(255,255,255,0.05)'},
   mRecentTxt:{fontSize:FontSizes.xs,color:Colors.secondary,fontWeight:'600',letterSpacing:1},
   mQuick:{flexDirection:'row',justifyContent:'space-around',marginVertical:Spacing.lg},mQBtn:{alignItems:'center',backgroundColor:Colors.surface,borderRadius:BorderRadius.lg,padding:Spacing.md,width:90,borderWidth:1,borderColor:Colors.border},

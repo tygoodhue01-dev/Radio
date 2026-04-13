@@ -199,6 +199,28 @@ class PodcastCreate(BaseModel):
     audio_url: str = ""
     image_url: str = ""
 
+class ScheduleSlot(BaseModel):
+    day_of_week: str  # Monday, Tuesday, etc.
+    time_slot: str    # e.g., "6:00 AM - 9:00 AM"
+    show_name: str
+    dj_name: str
+    description: Optional[str] = None
+
+class JobApplication(BaseModel):
+    position: str
+    name: str
+    email: str
+    phone: str
+    cover_letter: str
+    resume_data: Optional[str] = None  # base64 encoded
+
+class JobApplicationUpdate(BaseModel):
+    status: str  # pending, approved, rejected
+
+class EmailRequest(BaseModel):
+    subject: str
+    message: str
+
 # App setup
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -1266,6 +1288,109 @@ async def redeem_reward(req: RewardRedeemRequest, user: dict = Depends(get_curre
         "created_at": datetime.now(timezone.utc).isoformat()
     })
     return {"message": f"Redeemed: {reward['name']}!"}
+
+# ==================== SCHEDULE ENDPOINTS ====================
+@api_router.get("/schedule")
+async def get_schedule():
+    """Public endpoint - get all schedule slots"""
+    schedule = await db.schedule.find({}).to_list(length=None)
+    for s in schedule:
+        s.pop("_id", None)
+    # Sort by day and time
+    day_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    schedule.sort(key=lambda x: (day_order.index(x.get("day_of_week", "Monday")), x.get("time_slot", "")))
+    return schedule
+
+@api_router.post("/admin/schedule")
+async def create_schedule_slot(slot: ScheduleSlot, user: dict = Depends(require_roles("admin"))):
+    """Admin only - create new schedule slot"""
+    slot_id = f"sch_{uuid.uuid4().hex[:12]}"
+    slot_data = {
+        "schedule_id": slot_id,
+        **slot.dict(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.schedule.insert_one(slot_data)
+    slot_data.pop("_id", None)
+    return slot_data
+
+@api_router.put("/admin/schedule/{schedule_id}")
+async def update_schedule_slot(schedule_id: str, slot: ScheduleSlot, user: dict = Depends(require_roles("admin"))):
+    """Admin only - update schedule slot"""
+    result = await db.schedule.update_one(
+        {"schedule_id": schedule_id},
+        {"$set": slot.dict()}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Schedule slot not found")
+    return {"message": "Schedule updated"}
+
+@api_router.delete("/admin/schedule/{schedule_id}")
+async def delete_schedule_slot(schedule_id: str, user: dict = Depends(require_roles("admin"))):
+    """Admin only - delete schedule slot"""
+    result = await db.schedule.delete_one({"schedule_id": schedule_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Schedule slot not found")
+    return {"message": "Schedule deleted"}
+
+# ==================== JOB APPLICATION ENDPOINTS ====================
+@api_router.post("/job-applications")
+async def submit_job_application(app_data: JobApplication):
+    """Public endpoint - submit job application"""
+    app_id = f"app_{uuid.uuid4().hex[:12]}"
+    application = {
+        "application_id": app_id,
+        **app_data.dict(),
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.job_applications.insert_one(application)
+    application.pop("_id", None)
+    return {"message": "Application submitted successfully", "application_id": app_id}
+
+@api_router.get("/admin/job-applications")
+async def get_job_applications(user: dict = Depends(require_roles("admin"))):
+    """Admin only - get all job applications"""
+    applications = await db.job_applications.find({}).sort("created_at", -1).to_list(length=None)
+    for app in applications:
+        app.pop("_id", None)
+    return applications
+
+@api_router.put("/admin/job-applications/{application_id}/status")
+async def update_application_status(application_id: str, update: JobApplicationUpdate, user: dict = Depends(require_roles("admin"))):
+    """Admin only - update application status"""
+    result = await db.job_applications.update_one(
+        {"application_id": application_id},
+        {"$set": {"status": update.status}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Application not found")
+    return {"message": f"Status updated to {update.status}"}
+
+@api_router.delete("/admin/job-applications/{application_id}")
+async def delete_job_application(application_id: str, user: dict = Depends(require_roles("admin"))):
+    """Admin only - delete job application"""
+    result = await db.job_applications.delete_one({"application_id": application_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Application not found")
+    return {"message": "Application deleted"}
+
+@api_router.post("/admin/job-applications/{application_id}/send-email")
+async def send_email_to_applicant(application_id: str, email_req: EmailRequest, user: dict = Depends(require_roles("admin"))):
+    """Admin only - send email to applicant (mock for now - integrate with email service)"""
+    app = await db.job_applications.find_one({"application_id": application_id})
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+    
+    # TODO: Integrate with actual email service (SendGrid, AWS SES, etc.)
+    # For now, just log and return success
+    logger.info(f"Email would be sent to {app.get('email')}: Subject={email_req.subject}")
+    
+    return {
+        "message": "Email sent successfully (mock)",
+        "recipient": app.get("email"),
+        "subject": email_req.subject
+    }
 
 # Include router
 app.include_router(api_router)

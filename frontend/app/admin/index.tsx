@@ -809,7 +809,7 @@ export default function AdminScreen() {
               <Text style={st.sidebarTitle}>Dashboard</Text>
             </View>
             {sidebarItems.filter(i => i.roles.includes(user.role)).map(item => (
-              <TouchableOpacity key={item.key} testID={`admin-tab-${item.key}`} style={[st.sidebarItem, tab === item.key && st.sidebarItemActive]} onPress={() => setTab(item.key)}>
+              <TouchableOpacity key={item.key} testID={`admin-tab-${item.key}`} style={[st.sidebarItem, tab === item.key && st.sidebarItemActive]} onPress={() => { console.log('TAB CLICKED:', item.key); setTab(item.key as AdminTab); }}>
                 <Ionicons name={item.icon as any} size={18} color={tab === item.key ? Colors.primary : Colors.textMuted} />
                 <Text style={[st.sidebarItemTxt, tab === item.key && st.sidebarItemTxtActive]}>{item.label}</Text>
                 {item.key === 'requests' && pendingCount > 0 && (

@@ -354,19 +354,19 @@ export async function getPendingCommentsApi(token: string) {
   return res.json();
 }
 
-export async function approveCommentApi(commentId: string, token: string) {
-  const res = await fetch(`${API_BASE}/admin/comments/${commentId}/approve`, {
+export async function approveCommentApi(commentId: string) {
+  const res = await authFetch(`${API_BASE}/admin/comments/${commentId}/approve`, {
     method: 'PUT',
-    headers: { 'Authorization': `Bearer ${token}` }
   });
+  if (!res.ok) throw new Error('Failed to approve');
   return res.json();
 }
 
-export async function deleteCommentApi(commentId: string, token: string) {
-  const res = await fetch(`${API_BASE}/admin/comments/${commentId}`, {
+export async function deleteCommentApi(commentId: string) {
+  const res = await authFetch(`${API_BASE}/admin/comments/${commentId}`, {
     method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${token}` }
   });
+  if (!res.ok) throw new Error('Failed to delete');
   return res.json();
 }
 

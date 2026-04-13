@@ -80,8 +80,11 @@ export default function AdminScreen() {
       setScheduleSlots(results[4]);
       setJobApplications(results[5]);
       if (results[6]) setPendingComments(results[6]);
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error('Load data error:', e); 
+    }
     setLoading(false);
+    setRefreshing(false);
   }, [user]);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -181,9 +184,7 @@ export default function AdminScreen() {
 
   const handleApproveComment = async (commentId: string) => {
     try {
-      const token = user?.access_token;
-      if (!token) return;
-      await approveCommentApi(commentId, token);
+      await approveCommentApi(commentId);
       await loadData();
       const msg = 'Comment approved';
       if (Platform.OS === 'web') {
@@ -208,20 +209,14 @@ export default function AdminScreen() {
     
     if (Platform.OS === 'web') {
       if (confirmDelete) {
-        const token = user?.access_token;
-        if (token) {
-          deleteCommentApi(commentId, token).then(() => loadData());
-        }
+        deleteCommentApi(commentId).then(() => loadData());
       }
     } else {
       Alert.alert('Delete Comment', `Delete comment from ${userName}?`, [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Delete', style: 'destructive', onPress: async () => { 
-          const token = user?.access_token;
-          if (token) {
-            await deleteCommentApi(commentId, token); 
-            await loadData(); 
-          }
+          await deleteCommentApi(commentId); 
+          await loadData(); 
         } },
       ]);
     }

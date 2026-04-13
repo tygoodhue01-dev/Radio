@@ -351,7 +351,7 @@ async def rate_song(req: SongRatingRequest, user: dict = Depends(get_current_use
     
     # Update or insert
     await db.song_ratings.update_one(
-        {"user_id": user["user_id"], "song_id": req.song_id"},
+        {"user_id": user["user_id"], "song_id": req.song_id},
         {"$set": rating_doc},
         upsert=True
     )

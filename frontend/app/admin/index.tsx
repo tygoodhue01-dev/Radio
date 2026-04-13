@@ -167,6 +167,54 @@ export default function AdminScreen() {
     }
   };
 
+  const handleApproveComment = async (commentId: string) => {
+    try {
+      const token = user?.access_token;
+      if (!token) return;
+      await approveCommentApi(commentId, token);
+      await loadData();
+      const msg = 'Comment approved';
+      if (Platform.OS === 'web') {
+        alert(msg);
+      } else {
+        Alert.alert('Success', msg);
+      }
+    } catch (e: any) {
+      const errMsg = e.message || 'Failed to approve';
+      if (Platform.OS === 'web') {
+        alert(errMsg);
+      } else {
+        Alert.alert('Error', errMsg);
+      }
+    }
+  };
+
+  const handleDeleteComment = (commentId: string, userName: string) => {
+    const confirmDelete = Platform.OS === 'web'
+      ? window.confirm(`Delete comment from ${userName}?`)
+      : true;
+    
+    if (Platform.OS === 'web') {
+      if (confirmDelete) {
+        const token = user?.access_token;
+        if (token) {
+          deleteCommentApi(commentId, token).then(() => loadData());
+        }
+      }
+    } else {
+      Alert.alert('Delete Comment', `Delete comment from ${userName}?`, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: async () => { 
+          const token = user?.access_token;
+          if (token) {
+            await deleteCommentApi(commentId, token); 
+            await loadData(); 
+          }
+        } },
+      ]);
+    }
+  };
+
   const handleCreateNews = async () => {
     if (!newsTitle.trim() || !newsContent.trim()) { Alert.alert('Required', 'Title and content are required'); return; }
     try { await createNewsApi({ title: newsTitle, content: newsContent, category: newsCategory }); setNewsTitle(''); setNewsContent(''); Alert.alert('Published!', 'News article created'); } catch (e: any) { Alert.alert('Error', e.message); }
@@ -461,6 +509,45 @@ export default function AdminScreen() {
     </View>
   );
 
+  const renderComments = () => (
+    <View>
+      <Text style={st.panelTitle}>Comment Moderation</Text>
+      <Text style={st.panelSub}>Review and approve pending comments from users.</Text>
+      {pendingComments.length === 0 ? (
+        <View style={{ alignItems: 'center', paddingVertical: 60 }}>
+          <Ionicons name="chatbubbles-outline" size={60} color={Colors.textMuted} />
+          <Text style={{ color: Colors.textMuted, marginTop: 16, fontSize: 16 }}>No pending comments</Text>
+        </View>
+      ) : (
+        <View style={st.table}>
+          <View style={st.tableHeader}>
+            <Text style={[st.th, { flex: 2 }]}>Comment</Text>
+            <Text style={[st.th, { flex: 1 }]}>User</Text>
+            <Text style={[st.th, { flex: 1.5 }]}>Article</Text>
+            <Text style={[st.th, { flex: 1 }]}>Date</Text>
+            <Text style={[st.th, { flex: 1.2 }]}>Actions</Text>
+          </View>
+          {pendingComments.map(comment => (
+            <View key={comment.comment_id} style={st.tableRow}>
+              <Text style={[st.td, { flex: 2 }]} numberOfLines={2}>{comment.content}</Text>
+              <Text style={[st.td, { flex: 1 }]}>{comment.user_name}</Text>
+              <Text style={[st.td, { flex: 1.5 }]} numberOfLines={1}>{comment.post_title || comment.post_id}</Text>
+              <Text style={[st.td, { flex: 1 }]}>{new Date(comment.created_at).toLocaleDateString()}</Text>
+              <View style={{ flex: 1.2, flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                <TouchableOpacity onPress={() => handleApproveComment(comment.comment_id)} style={st.actionBtn}>
+                  <Ionicons name="checkmark-circle" size={14} color={Colors.success} /><Text style={{ color: Colors.success, fontSize: 12, fontWeight: '600' }}>Approve</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDeleteComment(comment.comment_id, comment.user_name)} style={st.deleteBtn}>
+                  <Ionicons name="trash" size={14} color={Colors.error} /><Text style={{ color: Colors.error, fontSize: 12, fontWeight: '600' }}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+
   const renderPanel = () => {
     if (loading) return <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 60 }} />;
     switch (tab) {
@@ -470,6 +557,7 @@ export default function AdminScreen() {
       case 'users': return renderUsers();
       case 'content': return renderContent();
       case 'manage-news': return renderManageNews();
+      case 'comments': return renderComments();
     }
   };
 

@@ -123,6 +123,18 @@ export default function AdminScreen() {
           <Ionicons name="arrow-forward" size={16} color={Colors.accent} />
         </TouchableOpacity>
       )}
+
+      {/* Analytics Link */}
+      <TouchableOpacity style={st.analyticsCard} onPress={() => router.push('/admin/analytics')}>
+        <View style={st.analyticsIcon}>
+          <Ionicons name="analytics" size={32} color={Colors.primary} />
+        </View>
+        <View style={st.analyticsInfo}>
+          <Text style={st.analyticsTitle}>Advanced Analytics</Text>
+          <Text style={st.analyticsDesc}>View detailed statistics, charts & user growth</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={24} color={Colors.textMuted} />
+      </TouchableOpacity>
     </View>
   );
 
@@ -448,4 +460,11 @@ const st = StyleSheet.create({
   mUserInfo: { flex: 1 },
   mUserName: { fontSize: 14, fontWeight: '600', color: '#fff' },
   mUserEmail: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
+
+  // Analytics Card
+  analyticsCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, backgroundColor: 'rgba(255,0,127,0.1)', borderRadius: BorderRadius.xl, padding: Spacing.lg, marginTop: Spacing.lg, borderWidth: 2, borderColor: Colors.primary },
+  analyticsIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,0,127,0.2)', alignItems: 'center', justifyContent: 'center' },
+  analyticsInfo: { flex: 1 },
+  analyticsTitle: { fontSize: FontSizes.lg, fontWeight: '800', color: Colors.white, marginBottom: 4 },
+  analyticsDesc: { fontSize: FontSizes.sm, color: Colors.textSecondary },
 });

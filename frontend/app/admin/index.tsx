@@ -70,19 +70,24 @@ export default function AdminScreen() {
       
       // Only admins and editors can see pending comments
       if (user?.role === 'admin' || user?.role === 'editor') {
-        console.log('Admin: Loading pending comments...');
+        console.log('Admin: User is admin/editor, loading pending comments...');
         promises.push(getPendingCommentsApi());
+      } else {
+        console.log('Admin: User role is:', user?.role, '- NOT loading comments');
       }
       
+      console.log('Admin: Fetching', promises.length, 'promises...');
       const results = await Promise.all(promises);
-      console.log('Admin: Data loaded', {
+      
+      console.log('Admin: Results received:', {
         stats: results[0],
         users: results[1]?.length,
         requests: results[2]?.length,
         news: results[3]?.length,
         schedule: results[4]?.length,
         jobs: results[5]?.length,
-        comments: results[6]?.length
+        commentsIndex6: results[6],
+        commentsLength: results[6]?.length
       });
       
       setStats(results[0]); 
@@ -91,9 +96,12 @@ export default function AdminScreen() {
       setAllNews(results[3]);
       setScheduleSlots(results[4]);
       setJobApplications(results[5]);
+      
       if (results[6]) {
-        console.log('Admin: Setting pending comments:', results[6]);
+        console.log('Admin: Setting pending comments to:', results[6]);
         setPendingComments(results[6]);
+      } else {
+        console.log('Admin: No comments data in results[6]');
       }
     } catch (e) { 
       console.error('Admin: Load data error:', e); 

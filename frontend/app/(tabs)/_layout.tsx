@@ -9,9 +9,9 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const isWebDesktop = Platform.OS === 'web' && width >= 900;
   
-  // Add extra padding for Android devices with on-screen navigation (Samsung, etc.)
-  const bottomPadding = Platform.OS === 'android' ? Math.max(insets.bottom, 6) : 6;
-  const tabBarHeight = 60 + (Platform.OS === 'android' ? insets.bottom : 0);
+  // Enhanced padding for Samsung and other Android devices with gesture/button navigation
+  const androidBottomPadding = Platform.OS === 'android' ? Math.max(insets.bottom, 8) : 0;
+  const tabBarHeight = 64 + androidBottomPadding;
 
   return (
     <Tabs
@@ -22,8 +22,8 @@ export default function TabLayout() {
           borderTopColor: 'rgba(255,0,127,0.2)',
           borderTopWidth: 1,
           height: tabBarHeight,
-          paddingBottom: bottomPadding,
-          paddingTop: 6,
+          paddingBottom: androidBottomPadding + 6,
+          paddingTop: 8,
         },
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textMuted,
@@ -52,17 +52,24 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="rewards"
-        options={{
-          title: 'Rewards',
-          tabBarIcon: ({ color, size }) => <Ionicons name="gift" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="more"
+        options={{
+          title: 'More',
+          tabBarIcon: ({ color, size }) => <Ionicons name="menu" size={size} color={color} />,
+        }}
+      />
+      {/* Hidden tabs - accessed from More menu */}
+      <Tabs.Screen
+        name="rewards"
+        options={{
+          href: null, // Hide from tab bar
         }}
       />
     </Tabs>

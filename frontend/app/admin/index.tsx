@@ -237,6 +237,89 @@ export default function AdminScreen() {
     try { await updateNowPlayingApi({ song_title: npSong, artist: npArtist }); setNpSong(''); setNpArtist(''); Alert.alert('Updated!', 'Now Playing updated'); } catch (e: any) { Alert.alert('Error', e.message); }
   };
 
+  const handleDeleteScheduleSlot = (scheduleId: string, showName: string) => {
+    const confirmDelete = Platform.OS === 'web' ? window.confirm(`Delete "${showName}" from schedule?`) : true;
+    if (Platform.OS === 'web') {
+      if (confirmDelete) deleteScheduleSlotApi(scheduleId).then(() => loadData());
+    } else {
+      Alert.alert('Delete Slot', `Delete "${showName}"?`, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: async () => { await deleteScheduleSlotApi(scheduleId); await loadData(); } },
+      ]);
+    }
+  };
+
+  const handleSaveScheduleSlot = async () => {
+    if (!editingSchedule) return;
+    try {
+      if (editingSchedule.schedule_id) {
+        await updateScheduleSlotApi(editingSchedule.schedule_id, editingSchedule);
+      } else {
+        await createScheduleSlotApi(editingSchedule);
+      }
+      setScheduleModal(false);
+      setEditingSchedule(null);
+      await loadData();
+      const msg = 'Schedule updated';
+      Platform.OS === 'web' ? alert(msg) : Alert.alert('Success', msg);
+    } catch (e: any) {
+      Platform.OS === 'web' ? alert(e.message) : Alert.alert('Error', e.message);
+    }
+  };
+
+  const handleApproveApplication = async (appId: string) => {
+    try {
+      await updateJobApplicationStatusApi(appId, 'approved');
+      await loadData();
+      const msg = 'Application approved';
+      Platform.OS === 'web' ? alert(msg) : Alert.alert('Success', msg);
+    } catch (e: any) {
+      Platform.OS === 'web' ? alert(e.message) : Alert.alert('Error', e.message);
+    }
+  };
+
+  const handleRejectApplication = async (appId: string) => {
+    try {
+      await updateJobApplicationStatusApi(appId, 'rejected');
+      await loadData();
+      const msg = 'Application rejected';
+      Platform.OS === 'web' ? alert(msg) : Alert.alert('Success', msg);
+    } catch (e: any) {
+      Platform.OS === 'web' ? alert(e.message) : Alert.alert('Error', e.message);
+    }
+  };
+
+  const handleDeleteApplication = (appId: string, name: string) => {
+    const confirmDelete = Platform.OS === 'web' ? window.confirm(`Delete application from ${name}?`) : true;
+    if (Platform.OS === 'web') {
+      if (confirmDelete) deleteJobApplicationApi(appId).then(() => loadData());
+    } else {
+      Alert.alert('Delete Application', `Delete from ${name}?`, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: async () => { await deleteJobApplicationApi(appId); await loadData(); } },
+      ]);
+    }
+  };
+
+  const handleSendEmailToApplicant = async () => {
+    if (!emailingApplicant || !emailSubject || !emailMessage) {
+      const msg = 'Please fill in subject and message';
+      Platform.OS === 'web' ? alert(msg) : Alert.alert('Required', msg);
+      return;
+    }
+    try {
+      await sendEmailToApplicantApi(emailingApplicant.application_id, { subject: emailSubject, message: emailMessage });
+      setEmailModal(false);
+      setEmailingApplicant(null);
+      setEmailSubject('');
+      setEmailMessage('');
+      const msg = 'Email sent successfully (mock)';
+      Platform.OS === 'web' ? alert(msg) : Alert.alert('Success', msg);
+    } catch (e: any) {
+      Platform.OS === 'web' ? alert(e.message) : Alert.alert('Error', e.message);
+    }
+  };
+
   if (!user || !['admin', 'dj', 'editor'].includes(user.role)) {
     return (
       <SafeAreaView style={st.safe}>
@@ -562,6 +645,120 @@ export default function AdminScreen() {
     </View>
   );
 
+  const renderSchedule = () => (
+    <View>
+      <Text style={st.panelTitle}>Schedule Management</Text>
+      <Text style={st.panelSub}>Manage the weekly on-air schedule for all shows.</Text>
+      
+      <TouchableOpacity style={[st.primaryBtn, { maxWidth: 200, marginBottom: Spacing.lg }]} onPress={() => {
+        setEditingSchedule({ day_of_week: 'Monday', time_slot: '', show_name: '', dj_name: '', description: '' });
+        setScheduleModal(true);
+      }}>
+        <Ionicons name="add-circle" size={18} color="#fff" />
+        <Text style={st.primaryBtnTxt}>ADD TIME SLOT</Text>
+      </TouchableOpacity>
+
+      {scheduleSlots.length === 0 ? (
+        <Text style={{ color: Colors.textMuted, textAlign: 'center', marginTop: 40 }}>No schedule slots yet</Text>
+      ) : (
+        <View style={st.table}>
+          <View style={st.tableHeader}>
+            <Text style={[st.th, { flex: 1 }]}>Day</Text>
+            <Text style={[st.th, { flex: 1.5 }]}>Time</Text>
+            <Text style={[st.th, { flex: 1.5 }]}>Show</Text>
+            <Text style={[st.th, { flex: 1.5 }]}>DJ</Text>
+            <Text style={[st.th, { flex: 1.5 }]}>Actions</Text>
+          </View>
+          {scheduleSlots.map(slot => (
+            <View key={slot.schedule_id} style={st.tableRow}>
+              <Text style={[st.td, { flex: 1 }]}>{slot.day_of_week}</Text>
+              <Text style={[st.td, { flex: 1.5 }]}>{slot.time_slot}</Text>
+              <Text style={[st.td, { flex: 1.5, fontWeight: '600', color: '#fff' }]}>{slot.show_name}</Text>
+              <Text style={[st.td, { flex: 1.5 }]}>{slot.dj_name}</Text>
+              <View style={{ flex: 1.5, flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                <TouchableOpacity onPress={() => { setEditingSchedule(slot); setScheduleModal(true); }} style={st.actionBtn}>
+                  <Ionicons name="create" size={14} color={Colors.accent} /><Text style={{ color: Colors.accent, fontSize: 12, fontWeight: '600' }}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDeleteScheduleSlot(slot.schedule_id, slot.show_name)} style={st.deleteBtn}>
+                  <Ionicons name="trash" size={14} color={Colors.error} /><Text style={{ color: Colors.error, fontSize: 12, fontWeight: '600' }}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+
+  const renderJobApplications = () => (
+    <View>
+      <Text style={st.panelTitle}>Job Applications</Text>
+      <Text style={st.panelSub}>Review and manage job applications from potential team members.</Text>
+      
+      {jobApplications.length === 0 ? (
+        <View style={{ alignItems: 'center', paddingVertical: 60 }}>
+          <Ionicons name="briefcase-outline" size={60} color={Colors.textMuted} />
+          <Text style={{ color: Colors.textMuted, marginTop: 16, fontSize: 16 }}>No applications yet</Text>
+        </View>
+      ) : (
+        <View style={st.table}>
+          <View style={st.tableHeader}>
+            <Text style={[st.th, { flex: 1.5 }]}>Position</Text>
+            <Text style={[st.th, { flex: 1.5 }]}>Name</Text>
+            <Text style={[st.th, { flex: 1.5 }]}>Email</Text>
+            <Text style={[st.th, { flex: 1 }]}>Phone</Text>
+            <Text style={[st.th, { flex: 0.8 }]}>Status</Text>
+            <Text style={[st.th, { flex: 1 }]}>Date</Text>
+            <Text style={[st.th, { flex: 2 }]}>Actions</Text>
+          </View>
+          {jobApplications.map(app => (
+            <View key={app.application_id} style={st.tableRow}>
+              <Text style={[st.td, { flex: 1.5, fontWeight: '600', color: '#fff' }]}>{app.position}</Text>
+              <Text style={[st.td, { flex: 1.5 }]}>{app.name}</Text>
+              <Text style={[st.td, { flex: 1.5 }]}>{app.email}</Text>
+              <Text style={[st.td, { flex: 1 }]}>{app.phone || '—'}</Text>
+              <View style={{ flex: 0.8, justifyContent: 'center' }}>
+                <View style={[
+                  st.statusBadge,
+                  app.status === 'approved' && { borderColor: Colors.success },
+                  app.status === 'rejected' && { borderColor: Colors.error }
+                ]}>
+                  <Text style={[
+                    st.statusTxt,
+                    app.status === 'approved' && { color: Colors.success },
+                    app.status === 'rejected' && { color: Colors.error },
+                    app.status === 'pending' && { color: Colors.secondary }
+                  ]}>
+                    {app.status.toUpperCase()}
+                  </Text>
+                </View>
+              </View>
+              <Text style={[st.td, { flex: 1 }]}>{new Date(app.created_at).toLocaleDateString()}</Text>
+              <View style={{ flex: 2, flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                {app.status === 'pending' && (
+                  <>
+                    <TouchableOpacity onPress={() => handleApproveApplication(app.application_id)} style={[st.actionBtn, { paddingHorizontal: 6 }]}>
+                      <Ionicons name="checkmark" size={14} color={Colors.success} /><Text style={{ color: Colors.success, fontSize: 11, fontWeight: '600' }}>Approve</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleRejectApplication(app.application_id)} style={[st.actionBtn, { paddingHorizontal: 6 }]}>
+                      <Ionicons name="close" size={14} color={Colors.error} /><Text style={{ color: Colors.error, fontSize: 11, fontWeight: '600' }}>Reject</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+                <TouchableOpacity onPress={() => { setEmailingApplicant(app); setEmailModal(true); }} style={[st.actionBtn, { paddingHorizontal: 6 }]}>
+                  <Ionicons name="mail" size={14} color={Colors.accent} /><Text style={{ color: Colors.accent, fontSize: 11, fontWeight: '600' }}>Email</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDeleteApplication(app.application_id, app.name)} style={[st.deleteBtn, { paddingHorizontal: 6 }]}>
+                  <Ionicons name="trash" size={14} color={Colors.error} /><Text style={{ color: Colors.error, fontSize: 11, fontWeight: '600' }}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+
   const renderPanel = () => {
     if (loading) return <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 60 }} />;
     switch (tab) {
@@ -572,6 +769,8 @@ export default function AdminScreen() {
       case 'content': return renderContent();
       case 'manage-news': return renderManageNews();
       case 'comments': return renderComments();
+      case 'schedule': return renderSchedule();
+      case 'jobs': return renderJobApplications();
     }
   };
 

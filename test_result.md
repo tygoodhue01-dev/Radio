@@ -318,3 +318,25 @@ agent_communication:
       - All services running and healthy
       
       Ready for frontend testing or enhancements as requested by user.
+  
+  - agent: "main"
+    message: |
+      Bug fixes and feature additions completed:
+      
+      ✅ Fixed logout button issue:
+      - Added Platform.OS check for web vs native
+      - Web now uses window.confirm() instead of Alert.alert()
+      - Mobile continues to use Alert.alert() for native feel
+      - After logout, redirects to home page instead of login (better UX)
+      
+      ✅ Added Des Moines, Iowa weather widget:
+      - Created WeatherWidget component using wttr.in free API
+      - Displays current temperature in Fahrenheit
+      - Shows weather condition, feels-like temp, and humidity
+      - Auto-refreshes every 30 minutes
+      - Weather icon changes based on conditions (sunny, cloudy, rainy, snow, thunderstorm)
+      - Added to both web and mobile layouts on home page
+      - Positioned between hero section and shows section
+      - Styled with neon theme matching the app design
+      
+      App is fully functional and both issues resolved.

@@ -13,6 +13,7 @@ import {
 } from '@/src/services/api';
 import { Colors, Spacing, FontSizes, BorderRadius } from '@/src/theme';
 import AdvancedPlayer from '@/src/components/AdvancedPlayer';
+import WeatherWidget from '@/src/components/WeatherWidget';
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -188,6 +189,12 @@ export default function HomeScreen() {
               </TouchableOpacity>
             ))}
           </View>
+          
+          {/* Weather Widget */}
+          <View style={{ marginHorizontal: Spacing.lg, marginTop: Spacing.lg }}>
+            <WeatherWidget />
+          </View>
+
           {shows.length>0&&<><Text style={s.secTitle}>ON-AIR SHOWS</Text><ScrollView horizontal showsHorizontalScrollIndicator={false}>{shows.map(sh=>(<View key={sh.show_id} style={s.mShowCard}>{sh.image_url?<Image source={{uri:sh.image_url}} style={s.mShowImg}/>:<View style={[s.mShowImg,s.mShowPh]}><Ionicons name="mic" size={28} color={Colors.primary}/></View>}<Text style={s.mShowNm} numberOfLines={1}>{sh.name}</Text><Text style={s.mShowSch}>{sh.schedule}</Text></View>))}</ScrollView></>}
           {news.length>0&&<><View style={s.secRow}><Text style={s.secTitle}>LATEST NEWS</Text><TouchableOpacity onPress={()=>router.push('/(tabs)/news')}><Text style={s.seeAll}>See All</Text></TouchableOpacity></View>{news.slice(0,3).map(a=>(<TouchableOpacity key={a.news_id} style={s.mNewsCard} onPress={()=>router.push(`/news/${a.news_id}`)}>{a.image_url?<Image source={{uri:a.image_url}} style={s.mNewsImg}/>:null}<View style={s.mNewsTxt}><Text style={s.mNewsCat}>{a.category?.toUpperCase()}</Text><Text style={s.mNewsTitle} numberOfLines={2}>{a.title}</Text></View></TouchableOpacity>))}</>}
           <View style={{height:40}}/>
@@ -267,6 +274,11 @@ function WebLayout({ user, router, nowPlaying, news, shows, events, contests, po
       </View>
 
       <View style={s.wContainer}>
+        {/* ===== WEATHER WIDGET ===== */}
+        <View style={[s.wSection, { marginTop: Spacing.xl }]}>
+          <WeatherWidget />
+        </View>
+
         {/* ===== SHOWS & DJS ===== */}
         <View style={s.wSection}>
           <View style={s.wSecHeader}><Text style={s.wSecTitle}>SHOWS & DJS</Text><Text style={s.wSecSub}>Meet your on-air talent</Text></View>

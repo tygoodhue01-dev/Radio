@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,17 +14,25 @@ export default function ProfileScreen() {
   const router = useRouter();
   const isWeb = useIsWebDesktop();
 
-  const handleLogout = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign Out', style: 'destructive',
-        onPress: async () => {
-          await logout();
-          router.replace('/(auth)/login');
+  const handleLogout = async () => {
+    // For web, use window.confirm instead of Alert.alert
+    if (Platform.OS === 'web') {
+      if (window.confirm('Are you sure you want to sign out?')) {
+        await logout();
+        router.replace('/(tabs)/home');
+      }
+    } else {
+      Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out', style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/(tabs)/home');
+          },
         },
-      },
-    ]);
+      ]);
+    }
   };
 
   const getRoleLabel = (role: string) => {

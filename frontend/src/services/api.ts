@@ -370,6 +370,82 @@ export async function deleteCommentApi(commentId: string, token: string) {
   return res.json();
 }
 
+// Schedule
+export async function getScheduleApi() {
+  const res = await fetch(`${API_BASE}/schedule`);
+  if (!res.ok) throw new Error('Failed to fetch schedule');
+  return res.json();
+}
+
+export async function createScheduleSlotApi(data: any) {
+  const res = await authFetch(`${API_BASE}/admin/schedule`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to create schedule slot');
+  return res.json();
+}
+
+export async function updateScheduleSlotApi(scheduleId: string, data: any) {
+  const res = await authFetch(`${API_BASE}/admin/schedule/${scheduleId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update schedule slot');
+  return res.json();
+}
+
+export async function deleteScheduleSlotApi(scheduleId: string) {
+  const res = await authFetch(`${API_BASE}/admin/schedule/${scheduleId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error('Failed to delete schedule slot');
+  return res.json();
+}
+
+// Job Applications
+export async function submitJobApplicationApi(data: any) {
+  const res = await fetch(`${API_BASE}/job-applications`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to submit application');
+  return res.json();
+}
+
+export async function getJobApplicationsApi() {
+  const res = await authFetch(`${API_BASE}/admin/job-applications`);
+  if (!res.ok) throw new Error('Failed to fetch applications');
+  return res.json();
+}
+
+export async function updateJobApplicationStatusApi(appId: string, status: string) {
+  const res = await authFetch(`${API_BASE}/admin/job-applications/${appId}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error('Failed to update status');
+  return res.json();
+}
+
+export async function deleteJobApplicationApi(appId: string) {
+  const res = await authFetch(`${API_BASE}/admin/job-applications/${appId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error('Failed to delete application');
+  return res.json();
+}
+
+export async function sendEmailToApplicantApi(appId: string, emailData: any) {
+  const res = await authFetch(`${API_BASE}/admin/job-applications/${appId}/send-email`, {
+    method: 'POST',
+    body: JSON.stringify(emailData),
+  });
+  if (!res.ok) throw new Error('Failed to send email');
+  return res.json();
+}
+
 // User Management
 export async function updateUserApi(userId: string, updates: any, token: string) {
   const res = await fetch(`${API_BASE}/admin/users/${userId}`, {

@@ -58,11 +58,15 @@ export default function CommentsSection({ postType, postId }: CommentsSectionPro
 
     setSubmitting(true);
     try {
-      await createCommentApi({
-        content: commentText,
-        post_type: postType,
-        post_id: postId,
-      });
+      // Get token from storage
+      const AsyncStorage = await import('@react-native-async-storage/async-storage');
+      const token = await AsyncStorage.default.getItem('access_token');
+      
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
+      await createCommentApi(postType, postId, commentText, token);
       setCommentText('');
       const successMsg = 'Comment submitted! It will appear after moderation.';
       if (Platform.OS === 'web') {

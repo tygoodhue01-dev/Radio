@@ -7,10 +7,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { Colors, Spacing, FontSizes, BorderRadius } from '@/src/theme';
+import { WebNavBar, WebContainer, WebFooter, useIsWebDesktop } from '@/src/components/WebShell';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const isWeb = useIsWebDesktop();
 
   const handleLogout = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
@@ -58,11 +60,10 @@ export default function ProfileScreen() {
     );
   }
 
-  return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView style={styles.scroll}>
+  const profileContent = (
+    <View style={[isWeb && { maxWidth: 600, alignSelf: 'center' as any, width: '100%', paddingTop: 40 }]}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>PROFILE</Text>
+          <Text style={[styles.headerTitle, isWeb && { fontSize: 32 }]}>PROFILE</Text>
         </View>
 
         {/* Avatar & Name */}
@@ -122,6 +123,23 @@ export default function ProfileScreen() {
 
         <Text style={styles.version}>The Beat 515 v1.0.0</Text>
         <View style={{ height: 40 }} />
+    </View>
+  );
+
+  if (isWeb) {
+    return (
+      <ScrollView style={{ flex: 1, backgroundColor: Colors.background }}>
+        <WebNavBar />
+        <WebContainer>{profileContent}</WebContainer>
+        <WebFooter />
+      </ScrollView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <ScrollView style={styles.scroll}>
+        <View style={{ paddingHorizontal: Spacing.lg }}>{profileContent}</View>
       </ScrollView>
     </SafeAreaView>
   );

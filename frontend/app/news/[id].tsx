@@ -7,22 +7,23 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { getNewsDetailApi } from '@/src/services/api';
 import { Colors, Spacing, FontSizes, BorderRadius } from '@/src/theme';
+import { WebNavBar, WebContainer, WebFooter, useIsWebDesktop } from '@/src/components/WebShell';
 
 export default function NewsDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const isWeb = useIsWebDesktop();
   const [article, setArticle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (id) {
-      getNewsDetailApi(id).then(setArticle).catch(() => {}).finally(() => setLoading(false));
-    }
+    if (id) { getNewsDetailApi(id).then(setArticle).catch(() => {}).finally(() => setLoading(false)); }
   }, [id]);
 
   if (loading) {
     return (
       <SafeAreaView style={styles.safe}>
+        {isWeb && <WebNavBar />}
         <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 100 }} />
       </SafeAreaView>
     );
@@ -31,43 +32,49 @@ export default function NewsDetail() {
   if (!article) {
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={styles.notFound}>
-          <Text style={styles.notFoundText}>Article not found</Text>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.backLink}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
+        {isWeb && <WebNavBar />}
+        <View style={styles.notFound}><Text style={styles.notFoundText}>Article not found</Text><TouchableOpacity onPress={() => router.back()}><Text style={styles.backLink}>Go Back</Text></TouchableOpacity></View>
       </SafeAreaView>
+    );
+  }
+
+  const articleContent = (
+    <View style={[isWeb && { maxWidth: 800, alignSelf: 'center' as any, width: '100%', paddingTop: 40, paddingBottom: 40 }]}>
+      {!isWeb && (
+        <TouchableOpacity testID="news-back-btn" style={styles.backBtn} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color={Colors.white} />
+        </TouchableOpacity>
+      )}
+      {article.image_url ? <Image source={{ uri: article.image_url }} style={[styles.heroImage, isWeb && { borderRadius: 16 }]} /> : (
+        <View style={styles.heroPlaceholder}><Ionicons name="newspaper" size={48} color={Colors.primary} /></View>
+      )}
+      <View style={styles.content}>
+        <View style={styles.metaRow}><Text style={styles.category}>{article.category?.toUpperCase()}</Text><Text style={styles.date}>{new Date(article.created_at).toLocaleDateString()}</Text></View>
+        <Text style={[styles.title, isWeb && { fontSize: 36 }]}>{article.title}</Text>
+        <Text style={styles.author}>By {article.author_name}</Text>
+        <Text style={[styles.body, isWeb && { fontSize: 17, lineHeight: 30 }]}>{article.content}</Text>
+        {isWeb && (
+          <TouchableOpacity onPress={() => router.push('/(tabs)/news')} style={{ marginTop: 32, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="arrow-back" size={16} color={Colors.primary} /><Text style={{ color: Colors.primary, fontWeight: '700', fontSize: 14 }}>Back to News</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+
+  if (isWeb) {
+    return (
+      <ScrollView style={{ flex: 1, backgroundColor: Colors.background }}>
+        <WebNavBar />
+        <WebContainer>{articleContent}</WebContainer>
+        <WebFooter />
+      </ScrollView>
     );
   }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView style={styles.scroll}>
-        <TouchableOpacity testID="news-back-btn" style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={Colors.white} />
-        </TouchableOpacity>
-
-        {article.image_url ? (
-          <Image source={{ uri: article.image_url }} style={styles.heroImage} />
-        ) : (
-          <View style={styles.heroPlaceholder}>
-            <Ionicons name="newspaper" size={48} color={Colors.primary} />
-          </View>
-        )}
-
-        <View style={styles.content}>
-          <View style={styles.metaRow}>
-            <Text style={styles.category}>{article.category?.toUpperCase()}</Text>
-            <Text style={styles.date}>{new Date(article.created_at).toLocaleDateString()}</Text>
-          </View>
-
-          <Text style={styles.title}>{article.title}</Text>
-          <Text style={styles.author}>By {article.author_name}</Text>
-          <Text style={styles.body}>{article.content}</Text>
-        </View>
-        <View style={{ height: 60 }} />
-      </ScrollView>
+      <ScrollView style={styles.scroll}>{articleContent}</ScrollView>
     </SafeAreaView>
   );
 }

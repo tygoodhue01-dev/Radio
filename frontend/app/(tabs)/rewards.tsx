@@ -12,6 +12,7 @@ import {
   getLeaderboardApi, dailyCheckInApi, redeemRewardApi
 } from '@/src/services/api';
 import { Colors, Spacing, FontSizes, BorderRadius } from '@/src/theme';
+import { WebNavBar, WebContainer, WebFooter, useIsWebDesktop } from '@/src/components/WebShell';
 
 const ICON_MAP: Record<string, string> = {
   megaphone: 'megaphone', flash: 'flash', star: 'star',
@@ -76,15 +77,12 @@ export default function RewardsScreen() {
     ]);
   };
 
-  return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView
-        style={styles.scroll}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
-      >
-        <View style={[styles.inner, maxW ? { maxWidth: maxW, alignSelf: 'center', width: '100%' } : undefined]}>
+  const isWeb = useIsWebDesktop();
+
+  const innerContent = (
+        <View style={[styles.inner, isWeb ? { maxWidth: 960, alignSelf: 'center' as any, width: '100%', paddingTop: 40 } : undefined]}>
           <View style={styles.header}>
-            <Text style={styles.title}>REWARDS</Text>
+            <Text style={[styles.title, isWeb && { fontSize: 32 }]}>REWARDS</Text>
             <Text style={styles.subtitle}>Earn points. Get perks.</Text>
           </View>
 
@@ -226,6 +224,22 @@ export default function RewardsScreen() {
 
           <View style={{ height: 40 }} />
         </View>
+  );
+
+  if (isWeb) {
+    return (
+      <ScrollView style={{ flex: 1, backgroundColor: Colors.background }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}>
+        <WebNavBar />
+        <WebContainer>{innerContent}</WebContainer>
+        <WebFooter />
+      </ScrollView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <ScrollView style={styles.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}>
+        <View style={styles.inner}>{innerContent}</View>
       </ScrollView>
     </SafeAreaView>
   );

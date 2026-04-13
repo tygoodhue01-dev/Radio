@@ -217,6 +217,13 @@ export async function getAdminStatsApi() {
   return res.json();
 }
 
+export async function getAdminRequestsApi(status?: string) {
+  const q = status ? `?status=${status}` : '';
+  const res = await authFetch(`${API_BASE}/admin/requests${q}`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
 // Stream config
 export async function getStreamConfigApi() {
   const res = await fetch(`${API_BASE}/stream-config`);

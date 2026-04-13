@@ -9,7 +9,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/src/contexts/AuthContext';
 import {
   getAdminUsersApi, getAdminStatsApi, updateUserRoleApi,
-  getRequestsApi, updateRequestStatusApi, createNewsApi,
+  getAdminRequestsApi, updateRequestStatusApi, createNewsApi,
   updateNowPlayingApi
 } from '@/src/services/api';
 import { Colors, Spacing, FontSizes, BorderRadius } from '@/src/theme';
@@ -40,7 +40,7 @@ export default function AdminScreen() {
       const [s, u, r] = await Promise.all([
         getAdminStatsApi(),
         getAdminUsersApi(),
-        getRequestsApi(),
+        getAdminRequestsApi(),
       ]);
       setStats(s);
       setUsers(u);

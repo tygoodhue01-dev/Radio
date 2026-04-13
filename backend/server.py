@@ -315,7 +315,14 @@ async def delete_news(news_id: str, user: dict = Depends(require_roles("admin", 
 
 # ==================== SONG REQUEST ENDPOINTS ====================
 @api_router.get("/requests")
-async def list_requests(status: str = "", limit: int = 50):
+async def list_requests(limit: int = 50):
+    # Public endpoint: only show approved requests
+    requests = await db.song_requests.find({"status": "approved"}, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    return requests
+
+@api_router.get("/admin/requests")
+async def list_all_requests(status: str = "", limit: int = 50, user: dict = Depends(require_roles("admin", "dj"))):
+    # Admin/DJ endpoint: see all requests for management
     query = {}
     if status:
         query["status"] = status

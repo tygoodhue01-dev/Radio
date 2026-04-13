@@ -1,0 +1,135 @@
+{
+  "theme": "DARK",
+  "archetype": "7 (Electric & Neon) mixed with Vibrant Pop",
+  "reasoning": "The user requested a 'fun colorful scheme' while maintaining a 'radio station vibe' with the tagline 'Proud. Loud. Local.' Radio stations and music apps historically translate 'loud and fun' to a dark UI with extremely vibrant, high-energy neon colors (reminiscent of DJ booths, stage lighting, and soundwaves).",
+  "brand": {
+    "name": "The Beat 515",
+    "tagline": "Proud. Loud. Local.",
+    "vibe": "High-Energy, Fun, Colorful, Loud, Local, Musical"
+  },
+  "color_palette": {
+    "background_base": "bg-[#09090b]",
+    "background_surface": "bg-[#18181b]",
+    "primary": "bg-[#FF007F]",
+    "primary_hover": "hover:bg-[#FF3399] hover:text-white",
+    "secondary": "bg-[#00F0FF]",
+    "accent": "bg-[#FFF000]",
+    "text_primary": "text-white",
+    "text_secondary": "text-zinc-400",
+    "border_subtle": "border-white/10",
+    "border_active": "border-[#FF007F]/50",
+    "gradient_brand": "bg-gradient-to-r from-[#FF007F] via-[#9D4CDD] to-[#00F0FF]",
+    "rules": [
+      "Never use pure white (#FFFFFF) for large backgrounds, only for text and high-contrast icons.",
+      "The primary pink (#FF007F) is reserved for Play buttons, Request CTAs, and active states.",
+      "Use cyan (#00F0FF) for secondary actions like 'Read More' in news or secondary tabs.",
+      "Use yellow (#FFF000) strictly for 'LIVE' badges or urgent notifications.",
+      "Always set hover states to a lighter hue with explicit text color."
+    ]
+  },
+  "typography": {
+    "heading_font": "font-sans",
+    "heading_family": "Outfit",
+    "body_font": "font-sans",
+    "body_family": "Manrope",
+    "mono_font": "font-mono",
+    "mono_family": "JetBrains Mono",
+    "rules": [
+      "H1 (Hero): text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter uppercase.",
+      "H2 (Section): text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight.",
+      "Body: text-base leading-relaxed text-zinc-300.",
+      "Overlines/Labels: text-xs font-mono uppercase tracking-[0.2em] text-[#00F0FF].",
+      "Do not use Inter for any headings."
+    ]
+  },
+  "spacing_and_layout": {
+    "system": "Tailwind generously spaced bento grid",
+    "grid_marketing": "grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-8",
+    "grid_dashboard": "grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+    "padding": "p-6 md:p-8",
+    "rules": [
+      "Mobile-First: Always start with grid-cols-1.",
+      "Containers with borders MUST have p-6 or p-8 internal padding.",
+      "Use optical alignment for icons + text.",
+      "Images must be capped at max-h-[80vh] on mobile to prevent scrolling fatigue."
+    ]
+  },
+  "surface_strategies": {
+    "header_nav": {
+      "style": "Glassmorphism",
+      "classes": "sticky top-0 z-50 backdrop-blur-xl bg-black/60 border-b border-white/10 shadow-sm"
+    },
+    "radio_player_bar": {
+      "style": "Glassmorphism Floating",
+      "classes": "fixed bottom-0 left-0 right-0 z-50 backdrop-blur-2xl bg-zinc-950/80 border-t border-[#FF007F]/30 backdrop-saturate-150"
+    },
+    "dashboard_cards": {
+      "style": "Retro-Futurism / Dark Bento",
+      "classes": "bg-[#18181b] rounded-2xl border border-white/5 hover:border-[#00F0FF]/30 transition-colors shadow-lg"
+    },
+    "hero_overlay": {
+      "style": "Gradient Fade",
+      "classes": "bg-gradient-to-t from-[#09090b] via-[#09090b]/60 to-transparent"
+    }
+  },
+  "components": {
+    "buttons": "Rounded-full for main CTAs (Play, Request). Sharp slight-radius (rounded-md) for dashboard actions. Primary CTAs use glowing shadow drop-shadow-[0_0_8px_rgba(255,0,127,0.5)].",
+    "request_chat": "Combined form and chat UI. Use Shadcn Form for the submission part, and a custom scrollable chat feed (flex-col-reverse) for the live requests. Message bubbles should be rounded-2xl bg-zinc-800 text-sm.",
+    "news_feed": "Bento grid mode. Hero article spans 2 columns, others are 1 column. Images must have bg-black/40 max overlay.",
+    "live_badge": "A pulsating dot indicator (animate-pulse) next to 'ON AIR' or 'LIVE' text. Colored #FFF000 (Yellow) or #FF007F (Pink)."
+  },
+  "motion_and_interactions": {
+    "hover": "Scale up slightly (hover:-translate-y-1 hover:scale-[1.02]) for cards and images.",
+    "active": "Scale down (active:scale-95) for buttons.",
+    "transitions": "transition-all duration-300 ease-out",
+    "marquee": "Use a slow-moving marquee (react-fast-marquee) for 'Now Playing: [Song Title] - [Artist]' in the player bar."
+  },
+  "media": {
+    "rules": [
+      "NEVER use placeholder images like via.placeholder.com. ONLY use the provided URLs.",
+      "Include 'data-testid' on all interactive elements."
+    ],
+    "image_urls": {
+      "hero_background_abstract": {
+        "url": "https://images.unsplash.com/photo-1724185773486-0b39642e607e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2ODl8MHwxfHNlYXJjaHwyfHxhYnN0cmFjdCUyMG5lb24lMjBzb3VuZHdhdmV8ZW58MHx8fHwxNzc2MDcwNjQzfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Vibrant abstract neon soundwave on dark background",
+        "usage": "Hero section background, auth screen background"
+      },
+      "live_dj_booth_1": {
+        "url": "https://static.prod-images.emergentagent.com/jobs/b1349ab8-20f7-48b5-b900-fc668397ebb1/images/8d660514dfc2116f64218cda821c96160d24b08bbcff48a69d80d36dbaa8b6ce.png",
+        "description": "Cinematic high-end modern DJ booth with neon lighting",
+        "usage": "About Us or DJ Profiles header image"
+      },
+      "live_dj_booth_2": {
+        "url": "https://images.unsplash.com/photo-1765894103984-91ff695bbbaf?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHwzfHxyYWRpbyUyMERKJTIwaG9zdGluZ3xlbnwwfHx8fDE3NzYwNzA2MzB8MA&ixlib=rb-4.1.0&q=85",
+        "description": "DJ mixing music on turntable with laptop",
+        "usage": "Showcase image for the 'On-Air Talent' section"
+      },
+      "radio_microphone": {
+        "url": "https://images.unsplash.com/photo-1767474365536-ef81bfa24c8a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzR8MHwxfHNlYXJjaHwxfHxyYWRpbyUyMGJyb2FkY2FzdGluZyUyMG1pY3JvcGhvbmV8ZW58MHx8fHwxNzc2MDcwNjQzfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Vintage microphone in recording studio",
+        "usage": "Thumbnail for Podcast/Request Line"
+      },
+      "news_desk": {
+        "url": "https://images.unsplash.com/photo-1550622824-928e5f246f81?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzF8MHwxfHNlYXJjaHwyfHxuZXdzJTIwam91cm5hbGlzdCUyMGRlc2t8ZW58MHx8fHwxNzc2MDcwNjMwfDA&ixlib=rb-4.1.0&q=85",
+        "description": "News journalist desk laptop view",
+        "usage": "Hero image for the News Articles Feed"
+      },
+      "music_festival": {
+        "url": "https://images.unsplash.com/photo-1773385404894-104116c1ef31?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MDV8MHwxfHNlYXJjaHwxfHxtdXNpYyUyMGZlc3RpdmFsJTIwY3Jvd2QlMjBuZW9ufGVufDB8fHx8MTc3NjA3MDY0M3ww&ixlib=rb-4.1.0&q=85",
+        "description": "Live concert festival crowd with neon lights",
+        "usage": "Background image for Local Events or Community page"
+      }
+    }
+  },
+  "instructions_to_main_agent": [
+    "Install the required font families (Outfit for headings, Manrope for body, JetBrains Mono for overlines/labels) via Google Fonts or standard imports.",
+    "Install lucide-react for standard icons.",
+    "Use react-fast-marquee for the 'Now Playing' scrolling text in the bottom radio player bar.",
+    "The layout must prioritize a mobile-app feel, as this is originally intended for the App Store (even though it's built with React JS + Tailwind here). This means a persistent bottom navigation or player bar is crucial for small screens.",
+    "Implement Role-Based dashboards using Shadcn 'Tabs' to switch between Admin, DJ, News Editor, and Listener views if mocked locally, or separate routes.",
+    "Ensure all buttons, form inputs, and key UI components have valid, kebab-case 'data-testid' attributes (e.g., 'play-radio-button', 'submit-request-button').",
+    "Use Shadcn UI primarily for the interactive elements (Forms, Dropdowns, Dialogs, Tabs) but style them with the dark neon theme colors provided above.",
+    "Do not use generic gray borders; tint them with the background color or use white/10 for subtlety."
+  ]
+}

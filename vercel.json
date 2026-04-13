@@ -1,0 +1,10 @@
+{
+  "buildCommand": "cd frontend && npx expo export:web",
+  "outputDirectory": "frontend/dist",
+  "devCommand": "cd frontend && npx expo start --web",
+  "installCommand": "cd frontend && yarn install",
+  "framework": null,
+  "env": {
+    "EXPO_PUBLIC_BACKEND_URL": "https://project-init-27.preview.emergentagent.com"
+  }
+}

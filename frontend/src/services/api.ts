@@ -310,3 +310,67 @@ export async function getRecentlyPlayedApi(limit: number = 50) {
   if (!res.ok) return [];
   return res.json();
 }
+
+// Comments
+export async function createCommentApi(postType: string, postId: string, content: string, token: string) {
+  const res = await fetch(`${API_BASE}/comments`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ post_type: postType, post_id: postId, content })
+  });
+  return res.json();
+}
+
+export async function getCommentsApi(postType: string, postId: string) {
+  const res = await fetch(`${API_BASE}/comments/${postType}/${postId}`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getPendingCommentsApi(token: string) {
+  const res = await fetch(`${API_BASE}/admin/comments/pending`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function approveCommentApi(commentId: string, token: string) {
+  const res = await fetch(`${API_BASE}/admin/comments/${commentId}/approve`, {
+    method: 'PUT',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  return res.json();
+}
+
+export async function deleteCommentApi(commentId: string, token: string) {
+  const res = await fetch(`${API_BASE}/admin/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  return res.json();
+}
+
+// User Management
+export async function updateUserApi(userId: string, updates: any, token: string) {
+  const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(updates)
+  });
+  return res.json();
+}
+
+export async function deleteUserApi(userId: string, token: string) {
+  const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  return res.json();
+}

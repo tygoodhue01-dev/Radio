@@ -116,6 +116,17 @@ class PollCreate(BaseModel):
 class PollVote(BaseModel):
     option_index: int
 
+class CommentCreate(BaseModel):
+    content: str
+    post_type: str  # 'news', 'show', 'event'
+    post_id: str
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    role: Optional[str] = None
+    bio: Optional[str] = None
+
 class NewsCreate(BaseModel):
     title: str
     content: str
@@ -568,6 +579,90 @@ async def get_user_analytics(user: dict = Depends(require_roles("admin"))):
         daily_signups[date] = daily_signups.get(date, 0) + 1
     
     return {"daily_signups": daily_signups}
+
+# ==================== COMMENTS ====================
+@api_router.post("/comments")
+async def create_comment(req: CommentCreate, user: dict = Depends(get_current_user)):
+    comment_doc = {
+        "comment_id": f"comment_{uuid.uuid4().hex[:12]}",
+        "user_id": user["user_id"],
+        "user_name": user["name"],
+        "post_type": req.post_type,
+        "post_id": req.post_id,
+        "content": req.content,
+        "approved": False,  # Requires approval
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.comments.insert_one(comment_doc)
+    comment_doc.pop("_id")
+    return comment_doc
+
+@api_router.get("/comments/{post_type}/{post_id}")
+async def get_comments(post_type: str, post_id: str):
+    # Only return approved comments for public
+    comments = await db.comments.find(
+        {"post_type": post_type, "post_id": post_id, "approved": True},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return comments
+
+@api_router.get("/admin/comments/pending")
+async def get_pending_comments(user: dict = Depends(require_roles("admin", "editor"))):
+    comments = await db.comments.find(
+        {"approved": False},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return comments
+
+@api_router.put("/admin/comments/{comment_id}/approve")
+async def approve_comment(comment_id: str, user: dict = Depends(require_roles("admin", "editor"))):
+    result = await db.comments.update_one(
+        {"comment_id": comment_id},
+        {"$set": {"approved": True}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    return {"message": "Comment approved"}
+
+@api_router.delete("/admin/comments/{comment_id}")
+async def delete_comment(comment_id: str, user: dict = Depends(require_roles("admin", "editor"))):
+    result = await db.comments.delete_one({"comment_id": comment_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    return {"message": "Comment deleted"}
+
+# ==================== ENHANCED USER MANAGEMENT ====================
+@api_router.put("/admin/users/{user_id}")
+async def update_user(user_id: str, req: UserUpdate, admin: dict = Depends(require_roles("admin"))):
+    update_data = {}
+    if req.name: update_data["name"] = req.name
+    if req.email: update_data["email"] = req.email
+    if req.role: update_data["role"] = req.role
+    if req.bio is not None: update_data["bio"] = req.bio
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.users.update_one({"user_id": user_id}, {"$set": update_data})
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    updated_user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
+    return updated_user
+
+@api_router.delete("/admin/users/{user_id}")
+async def delete_user(user_id: str, admin: dict = Depends(require_roles("admin"))):
+    # Prevent deleting yourself
+    if user_id == admin["user_id"]:
+        raise HTTPException(status_code=400, detail="Cannot delete your own account")
+    
+    result = await db.users.delete_one({"user_id": user_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"message": "User deleted successfully"}
 
 # ==================== NEWS ENDPOINTS ====================
 @api_router.get("/news")

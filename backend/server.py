@@ -645,6 +645,53 @@ async def get_stream_config():
         }
     return config
 
+@api_router.post("/stream/update-metadata")
+async def update_metadata_webhook(song_title: str, artist: str = "", album: str = ""):
+    """
+    Webhook endpoint for broadcasting software to push metadata updates.
+    Can be called from SAM Broadcaster, RadioDJ, or any broadcasting software.
+    
+    Example: POST /api/stream/update-metadata?song_title=Song&artist=Artist&album=Album
+    """
+    try:
+        # Get current now playing
+        current = await db.now_playing.find_one({"active": True}, {"_id": 0})
+        current_song = current.get("song_title", "") if current else ""
+        current_artist = current.get("artist", "") if current else ""
+        
+        # Only update if song changed
+        if song_title != current_song or artist != current_artist:
+            # Update now playing
+            np_doc = {
+                "song_title": song_title,
+                "artist": artist,
+                "album": album,
+                "dj_name": "Live Stream",
+                "active": True,
+                "started_at": datetime.now(timezone.utc).isoformat(),
+                "source": "webhook_update"
+            }
+            await db.now_playing.update_one({"active": True}, {"$set": np_doc}, upsert=True)
+            
+            # Add to recently played
+            recently_played_doc = {
+                "song_id": f"song_{uuid.uuid4().hex[:12]}",
+                "song_title": song_title,
+                "artist": artist,
+                "album": album,
+                "played_at": datetime.now(timezone.utc).isoformat(),
+                "source": "webhook_update"
+            }
+            await db.recently_played.insert_one(recently_played_doc)
+            
+            logger.info(f"Webhook updated now playing: {artist} - {song_title}")
+            return {"message": "Metadata updated successfully", "song": song_title, "artist": artist}
+        else:
+            return {"message": "Song unchanged", "song": song_title, "artist": artist}
+    except Exception as e:
+        logger.error(f"Error in metadata webhook: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.post("/stream/refresh-metadata")
 async def refresh_metadata(background_tasks: BackgroundTasks):
     """Manually trigger metadata refresh (for testing)."""

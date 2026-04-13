@@ -1,17 +1,30 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, useWindowDimensions, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/src/theme';
 
 export default function TabLayout() {
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const isWebDesktop = Platform.OS === 'web' && width >= 900;
+  
+  // Add extra padding for Android devices with on-screen navigation (Samsung, etc.)
+  const bottomPadding = Platform.OS === 'android' ? Math.max(insets.bottom, 6) : 6;
+  const tabBarHeight = 60 + (Platform.OS === 'android' ? insets.bottom : 0);
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: isWebDesktop ? { display: 'none' } : styles.tabBar,
+        tabBarStyle: isWebDesktop ? { display: 'none' } : {
+          backgroundColor: '#0d0d0f',
+          borderTopColor: 'rgba(255,0,127,0.2)',
+          borderTopWidth: 1,
+          height: tabBarHeight,
+          paddingBottom: bottomPadding,
+          paddingTop: 6,
+        },
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textMuted,
         tabBarLabelStyle: styles.tabLabel,
@@ -57,14 +70,6 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: '#0d0d0f',
-    borderTopColor: 'rgba(255,0,127,0.2)',
-    borderTopWidth: 1,
-    height: 60,
-    paddingBottom: 6,
-    paddingTop: 6,
-  },
   tabLabel: {
     fontSize: 10,
     fontWeight: '600',

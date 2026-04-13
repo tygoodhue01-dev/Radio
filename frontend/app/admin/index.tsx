@@ -29,6 +29,8 @@ export default function AdminScreen() {
   const [requests, setRequests] = useState<any[]>([]);
   const [allNews, setAllNews] = useState<any[]>([]);
   const [pendingComments, setPendingComments] = useState<any[]>([]);
+  const [scheduleSlots, setScheduleSlots] = useState<any[]>([]);
+  const [jobApplications, setJobApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   
@@ -47,6 +49,12 @@ export default function AdminScreen() {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [editNewsModal, setEditNewsModal] = useState(false);
   const [editingNews, setEditingNews] = useState<any>(null);
+  const [scheduleModal, setScheduleModal] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<any>(null);
+  const [emailModal, setEmailModal] = useState(false);
+  const [emailingApplicant, setEmailingApplicant] = useState<any>(null);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailMessage, setEmailMessage] = useState('');
 
   const loadData = useCallback(async () => {
     try {
@@ -54,7 +62,9 @@ export default function AdminScreen() {
         getAdminStatsApi(), 
         getAdminUsersApi(), 
         getAdminRequestsApi(),
-        getNewsApi()
+        getNewsApi(),
+        getScheduleApi(),
+        getJobApplicationsApi(),
       ];
       
       // Only admins and editors can see pending comments
@@ -67,7 +77,9 @@ export default function AdminScreen() {
       setUsers(results[1]); 
       setRequests(results[2]); 
       setAllNews(results[3]);
-      if (results[4]) setPendingComments(results[4]);
+      setScheduleSlots(results[4]);
+      setJobApplications(results[5]);
+      if (results[6]) setPendingComments(results[6]);
     } catch (e) { console.error(e); }
     setLoading(false);
   }, [user]);
@@ -246,6 +258,8 @@ export default function AdminScreen() {
     { key: 'content', label: 'Publish News', icon: 'create', roles: ['admin', 'editor'] },
     { key: 'manage-news', label: 'Manage News', icon: 'newspaper', roles: ['admin', 'editor'] },
     { key: 'comments', label: 'Comments', icon: 'chatbubbles', roles: ['admin', 'editor'] },
+    { key: 'schedule', label: 'Schedule', icon: 'calendar', roles: ['admin'] },
+    { key: 'jobs', label: 'Job Applications', icon: 'briefcase', roles: ['admin'] },
   ];
 
   const pendingCount = requests.filter(r => r.status === 'pending').length;
@@ -857,4 +871,6 @@ const st = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },
   modalContent: { backgroundColor: Colors.surface, borderRadius: BorderRadius.xl, padding: 24, width: '100%', maxWidth: 500, borderWidth: 1, borderColor: Colors.border },
   modalTitle: { fontSize: 20, fontWeight: '900', color: Colors.primary, marginBottom: 20, letterSpacing: 2 },
+});
+rimary, marginBottom: 20, letterSpacing: 2 },
 });

@@ -1,16 +1,28 @@
-import { Text, View, StyleSheet, Image } from "react-native";
-
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useAuth } from '@/src/contexts/AuthContext';
+import { Colors } from '@/src/theme';
 
 export default function Index() {
-  console.log(EXPO_PUBLIC_BACKEND_URL, "EXPO_PUBLIC_BACKEND_URL");
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading) {
+      if (user) {
+        router.replace('/(tabs)/home');
+      } else {
+        router.replace('/(auth)/login');
+      }
+    }
+  }, [user, loading]);
 
   return (
     <View style={styles.container}>
-      <Image
-        source={require("../assets/images/app-image.png")}
-        style={styles.image}
-      />
+      <Text style={styles.title}>THE BEAT 515</Text>
+      <Text style={styles.tagline}>PROUD. LOUD. LOCAL.</Text>
+      <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 24 }} />
     </View>
   );
 }
@@ -18,13 +30,21 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0c0c0c",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  image: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "contain",
+  title: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: Colors.primary,
+    letterSpacing: 3,
+  },
+  tagline: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.secondary,
+    letterSpacing: 4,
+    marginTop: 8,
   },
 });

@@ -16,7 +16,7 @@ def get_backend_url():
                     return line.split('=', 1)[1].strip().rstrip('/')
     except:
         pass
-    return 'https://radiohub-stream.preview.emergentagent.com'
+    return 'https://project-init-27.preview.emergentagent.com'
 
 BASE_URL = get_backend_url()
 

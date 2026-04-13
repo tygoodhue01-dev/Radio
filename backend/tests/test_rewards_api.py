@@ -16,7 +16,7 @@ def get_backend_url():
                     return line.split('=', 1)[1].strip().rstrip('/')
     except:
         pass
-    return 'https://project-init-27.preview.emergentagent.com'
+    return 'https://opener-2.preview.emergentagent.com'
 
 BASE_URL = get_backend_url()
 

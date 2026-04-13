@@ -38,7 +38,7 @@ export default function HomeScreen() {
   const shareSong = async () => {
     try {
       await Share.share({
-        message: `🎵 Now Playing on The Beat 515: ${nowPlaying?.song_title} by ${nowPlaying?.artist}\n\nListen live: https://project-init-27.preview.emergentagent.com`,
+        message: `🎵 Now Playing on The Beat 515: ${nowPlaying?.song_title} by ${nowPlaying?.artist}\n\nListen live: https://opener-2.preview.emergentagent.com`,
         title: 'Share Now Playing'
       });
     } catch (e) {

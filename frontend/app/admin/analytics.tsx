@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     flex: 1,
-    minWidth: (width - Spacing.lg * 2 - Spacing.md) / 2,
+    minWidth: (Dimensions.get('window').width - Spacing.lg * 2 - Spacing.md) / 2,
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,

@@ -366,11 +366,3 @@ export async function updateUserApi(userId: string, updates: any, token: string)
   });
   return res.json();
 }
-
-export async function deleteUserApi(userId: string, token: string) {
-  const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
-    method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return res.json();
-}

@@ -233,3 +233,45 @@ export async function updateProfileApi(data: any) {
   if (!res.ok) throw new Error('Failed to update');
   return res.json();
 }
+
+// Rewards
+export async function getRewardsApi() {
+  const res = await fetch(`${API_BASE}/rewards`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getMyPointsApi() {
+  const res = await authFetch(`${API_BASE}/rewards/my-points`);
+  if (!res.ok) return { points: 0, lifetime_points: 0 };
+  return res.json();
+}
+
+export async function getMyHistoryApi() {
+  const res = await authFetch(`${API_BASE}/rewards/my-history`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getLeaderboardApi() {
+  const res = await fetch(`${API_BASE}/rewards/leaderboard`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function dailyCheckInApi() {
+  const res = await authFetch(`${API_BASE}/rewards/check-in`, { method: 'POST' });
+  const data = await res.json();
+  if (!res.ok) throw new Error(formatError(data.detail));
+  return data;
+}
+
+export async function redeemRewardApi(rewardId: string) {
+  const res = await authFetch(`${API_BASE}/rewards/redeem`, {
+    method: 'POST',
+    body: JSON.stringify({ reward_id: rewardId }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(formatError(data.detail));
+  return data;
+}

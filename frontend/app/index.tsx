@@ -5,18 +5,15 @@ import { useAuth } from '@/src/contexts/AuthContext';
 import { Colors } from '@/src/theme';
 
 export default function Index() {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading) {
-      if (user) {
-        router.replace('/(tabs)/home');
-      } else {
-        router.replace('/(auth)/login');
-      }
+      // Always go to home - it's public now
+      router.replace('/(tabs)/home');
     }
-  }, [user, loading]);
+  }, [loading]);
 
   return (
     <View style={styles.container}>

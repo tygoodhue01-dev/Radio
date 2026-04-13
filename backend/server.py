@@ -132,6 +132,9 @@ class ProfileUpdate(BaseModel):
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
 
+class RewardRedeemRequest(BaseModel):
+    reward_id: str
+
 # App setup
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -320,6 +323,9 @@ async def create_request(req: SongRequestCreate, user: dict = Depends(get_curren
     }
     await db.request_chat.insert_one(chat_doc)
     
+    # Award points for making a request
+    await award_points(user["user_id"], 10, f"Song request: {req.song_title}", "request")
+    
     return request_doc
 
 @api_router.put("/requests/{request_id}/status")
@@ -350,6 +356,8 @@ async def send_chat(req: ChatMessageCreate, user: dict = Depends(get_current_use
     }
     await db.request_chat.insert_one(chat_doc)
     chat_doc.pop("_id", None)
+    # Award points for chatting
+    await award_points(user["user_id"], 5, "Chat message sent", "chat")
     return chat_doc
 
 # ==================== SHOWS ENDPOINTS ====================
@@ -482,6 +490,86 @@ async def get_stats(user: dict = Depends(require_roles("admin"))):
         "pending_requests": pending_requests,
         "total_shows": total_shows
     }
+
+# ==================== REWARDS HELPER ====================
+async def award_points(user_id: str, points: int, description: str, tx_type: str):
+    """Award points to a user and log the transaction."""
+    await db.user_points.update_one(
+        {"user_id": user_id},
+        {"$inc": {"points": points, "lifetime_points": points}, "$setOnInsert": {"user_id": user_id}},
+        upsert=True
+    )
+    await db.point_transactions.insert_one({
+        "transaction_id": f"tx_{uuid.uuid4().hex[:12]}",
+        "user_id": user_id,
+        "points": points,
+        "type": tx_type,
+        "description": description,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+
+# ==================== REWARDS ENDPOINTS ====================
+@api_router.get("/rewards")
+async def list_rewards():
+    rewards = await db.rewards.find({"active": True}, {"_id": 0}).sort("points_cost", 1).to_list(50)
+    return rewards
+
+@api_router.get("/rewards/my-points")
+async def get_my_points(user: dict = Depends(get_current_user)):
+    pts = await db.user_points.find_one({"user_id": user["user_id"]}, {"_id": 0})
+    if not pts:
+        return {"user_id": user["user_id"], "points": 0, "lifetime_points": 0}
+    return pts
+
+@api_router.get("/rewards/my-history")
+async def get_my_history(user: dict = Depends(get_current_user)):
+    txs = await db.point_transactions.find(
+        {"user_id": user["user_id"]}, {"_id": 0}
+    ).sort("created_at", -1).limit(30).to_list(30)
+    return txs
+
+@api_router.get("/rewards/leaderboard")
+async def get_leaderboard():
+    leaders = await db.user_points.find({}, {"_id": 0}).sort("lifetime_points", -1).limit(10).to_list(10)
+    result = []
+    for l in leaders:
+        u = await db.users.find_one({"user_id": l["user_id"]}, {"_id": 0, "password_hash": 0})
+        if u:
+            result.append({**l, "name": u.get("name", "Unknown"), "role": u.get("role", "listener")})
+    return result
+
+@api_router.post("/rewards/check-in")
+async def daily_check_in(user: dict = Depends(get_current_user)):
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    existing = await db.point_transactions.find_one({
+        "user_id": user["user_id"], "type": "check_in",
+        "created_at": {"$regex": f"^{today}"}
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Already checked in today!")
+    await award_points(user["user_id"], 25, "Daily check-in bonus", "check_in")
+    pts = await db.user_points.find_one({"user_id": user["user_id"]}, {"_id": 0})
+    return {"message": "Check-in complete! +25 points", "points": pts.get("points", 25)}
+
+@api_router.post("/rewards/redeem")
+async def redeem_reward(req: RewardRedeemRequest, user: dict = Depends(get_current_user)):
+    reward = await db.rewards.find_one({"reward_id": req.reward_id, "active": True}, {"_id": 0})
+    if not reward:
+        raise HTTPException(status_code=404, detail="Reward not found")
+    pts = await db.user_points.find_one({"user_id": user["user_id"]}, {"_id": 0})
+    current = pts.get("points", 0) if pts else 0
+    if current < reward["points_cost"]:
+        raise HTTPException(status_code=400, detail="Not enough points")
+    await db.user_points.update_one({"user_id": user["user_id"]}, {"$inc": {"points": -reward["points_cost"]}})
+    await db.point_transactions.insert_one({
+        "transaction_id": f"tx_{uuid.uuid4().hex[:12]}",
+        "user_id": user["user_id"],
+        "points": -reward["points_cost"],
+        "type": "redeem",
+        "description": f"Redeemed: {reward['name']}",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    return {"message": f"Redeemed: {reward['name']}!"}
 
 # Include router
 app.include_router(api_router)
@@ -661,6 +749,20 @@ async def startup():
             "tagline": "Proud. Loud. Local.",
             "active": True
         })
+    
+    # Seed rewards catalog
+    reward_count = await db.rewards.count_documents({})
+    if reward_count == 0:
+        sample_rewards = [
+            {"reward_id": f"rwd_{uuid.uuid4().hex[:12]}", "name": "Shoutout on Air", "description": "Get a personal shoutout from the DJ during their next show!", "points_cost": 100, "icon": "megaphone", "category": "experience", "active": True},
+            {"reward_id": f"rwd_{uuid.uuid4().hex[:12]}", "name": "Priority Request", "description": "Your next song request jumps to the front of the queue!", "points_cost": 50, "icon": "flash", "category": "perk", "active": True},
+            {"reward_id": f"rwd_{uuid.uuid4().hex[:12]}", "name": "Beat 515 Sticker Pack", "description": "Exclusive digital sticker pack with The Beat 515 designs.", "points_cost": 75, "icon": "star", "category": "merch", "active": True},
+            {"reward_id": f"rwd_{uuid.uuid4().hex[:12]}", "name": "VIP Listener Badge", "description": "Unlock the golden VIP badge on your profile for 30 days.", "points_cost": 200, "icon": "shield-checkmark", "category": "status", "active": True},
+            {"reward_id": f"rwd_{uuid.uuid4().hex[:12]}", "name": "Concert Ticket Entry", "description": "Enter to win concert tickets! One entry per redemption.", "points_cost": 150, "icon": "ticket", "category": "contest", "active": True},
+            {"reward_id": f"rwd_{uuid.uuid4().hex[:12]}", "name": "DJ Meet & Greet", "description": "Score a virtual meet & greet with your favorite Beat 515 DJ!", "points_cost": 500, "icon": "people", "category": "experience", "active": True},
+        ]
+        await db.rewards.insert_many(sample_rewards)
+        logger.info("Rewards catalog seeded")
     
     logger.info("The Beat 515 backend started successfully!")
 

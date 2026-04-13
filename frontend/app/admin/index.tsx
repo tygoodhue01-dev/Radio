@@ -616,10 +616,12 @@ export default function AdminScreen() {
     </View>
   );
 
-  const renderComments = () => (
+  const renderComments = () => {
+    console.log('renderComments called, pendingComments:', pendingComments, 'length:', pendingComments.length);
+    return (
     <View>
       <Text style={st.panelTitle}>Comment Moderation</Text>
-      <Text style={st.panelSub}>Review and approve pending comments from users.</Text>
+      <Text style={st.panelSub}>Review and approve pending comments from users. ({pendingComments.length} pending)</Text>
       {pendingComments.length === 0 ? (
         <View style={{ alignItems: 'center', paddingVertical: 60 }}>
           <Ionicons name="chatbubbles-outline" size={60} color={Colors.textMuted} />
@@ -653,7 +655,7 @@ export default function AdminScreen() {
         </View>
       )}
     </View>
-  );
+  )};
 
   const renderSchedule = () => (
     <View>

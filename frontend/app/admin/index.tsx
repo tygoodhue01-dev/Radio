@@ -11,7 +11,9 @@ import {
   getAdminUsersApi, getAdminStatsApi, updateUserRoleApi,
   getAdminRequestsApi, updateRequestStatusApi, createNewsApi,
   updateNowPlayingApi, deleteUserApi, getNewsApi, updateNewsApi, deleteNewsApi,
-  getPendingCommentsApi, approveCommentApi, deleteCommentApi, deleteRequestApi
+  getPendingCommentsApi, approveCommentApi, deleteCommentApi, deleteRequestApi,
+  getScheduleApi, createScheduleSlotApi, updateScheduleSlotApi, deleteScheduleSlotApi,
+  getJobApplicationsApi, updateJobApplicationStatusApi, deleteJobApplicationApi, sendEmailToApplicantApi
 } from '@/src/services/api';
 import { Colors, Spacing, FontSizes, BorderRadius } from '@/src/theme';
 import { WebNavBar, WebFooter } from '@/src/components/WebShell';

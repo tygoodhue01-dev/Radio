@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -7,11 +7,12 @@ import { useAuth } from '@/src/contexts/AuthContext';
 import { Colors, Spacing, FontSizes, BorderRadius } from '@/src/theme';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
-const { width } = Dimensions.get('window');
 
 export default function AnalyticsDashboard() {
   const router = useRouter();
   const { user } = useAuth();
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
   const [stats, setStats] = useState<any>(null);
   const [userGrowth, setUserGrowth] = useState<any>({});
   const [loading, setLoading] = useState(true);
@@ -54,7 +55,7 @@ export default function AnalyticsDashboard() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
+      <View style={[styles.header, isDesktop && styles.headerDesktop]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={Colors.white} />
         </TouchableOpacity>
@@ -65,42 +66,43 @@ export default function AnalyticsDashboard() {
       </View>
 
       <ScrollView style={styles.scroll}>
-        {/* Key Metrics */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Overview</Text>
-          <View style={styles.metricsGrid}>
-            <View style={styles.metricCard}>
-              <Ionicons name="people" size={32} color={Colors.primary} />
-              <Text style={styles.metricValue}>{stats?.total_users || 0}</Text>
-              <Text style={styles.metricLabel}>Total Users</Text>
-              <View style={styles.badge}>
-                <Ionicons name="trending-up" size={12} color={Colors.accent} />
-                <Text style={styles.badgeText}>+{stats?.new_users_7d || 0} this week</Text>
+        <View style={[styles.container, isDesktop && styles.containerDesktop]}>
+          {/* Key Metrics */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Overview</Text>
+            <View style={[styles.metricsGrid, isDesktop && styles.metricsGridDesktop]}>
+              <View style={[styles.metricCard, isDesktop && styles.metricCardDesktop]}>
+                <Ionicons name="people" size={32} color={Colors.primary} />
+                <Text style={styles.metricValue}>{stats?.total_users || 0}</Text>
+                <Text style={styles.metricLabel}>Total Users</Text>
+                <View style={styles.badge}>
+                  <Ionicons name="trending-up" size={12} color={Colors.accent} />
+                  <Text style={styles.badgeText}>+{stats?.new_users_7d || 0} this week</Text>
+                </View>
               </View>
-            </View>
 
-            <View style={styles.metricCard}>
-              <Ionicons name="musical-notes" size={32} color={Colors.secondary} />
-              <Text style={styles.metricValue}>{stats?.total_songs_played || 0}</Text>
-              <Text style={styles.metricLabel}>Songs Played</Text>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{stats?.songs_played_today || 0} today</Text>
+              <View style={[styles.metricCard, isDesktop && styles.metricCardDesktop]}>
+                <Ionicons name="musical-notes" size={32} color={Colors.secondary} />
+                <Text style={styles.metricValue}>{stats?.total_songs_played || 0}</Text>
+                <Text style={styles.metricLabel}>Songs Played</Text>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{stats?.songs_played_today || 0} today</Text>
+                </View>
               </View>
-            </View>
 
-            <View style={styles.metricCard}>
-              <Ionicons name="star" size={32} color={Colors.accent} />
-              <Text style={styles.metricValue}>{stats?.total_ratings || 0}</Text>
-              <Text style={styles.metricLabel}>Song Ratings</Text>
-            </View>
+              <View style={[styles.metricCard, isDesktop && styles.metricCardDesktop]}>
+                <Ionicons name="star" size={32} color={Colors.accent} />
+                <Text style={styles.metricValue}>{stats?.total_ratings || 0}</Text>
+                <Text style={styles.metricLabel}>Song Ratings</Text>
+              </View>
 
-            <View style={styles.metricCard}>
-              <Ionicons name="chatbubbles" size={32} color={Colors.primary} />
-              <Text style={styles.metricValue}>{stats?.total_requests || 0}</Text>
-              <Text style={styles.metricLabel}>Requests</Text>
+              <View style={[styles.metricCard, isDesktop && styles.metricCardDesktop]}>
+                <Ionicons name="chatbubbles" size={32} color={Colors.primary} />
+                <Text style={styles.metricValue}>{stats?.total_requests || 0}</Text>
+                <Text style={styles.metricLabel}>Requests</Text>
+              </View>
             </View>
           </View>
-        </View>
 
         {/* User Growth Chart */}
         <View style={styles.section}>
@@ -184,6 +186,7 @@ export default function AnalyticsDashboard() {
         </View>
 
         <View style={{ height: 40 }} />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -371,5 +374,24 @@ const styles = StyleSheet.create({
   actionDesc: {
     fontSize: FontSizes.sm,
     color: Colors.textSecondary,
+  },
+  // Desktop responsive styles
+  headerDesktop: {
+    maxWidth: 1200,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  containerDesktop: {
+    maxWidth: 1200,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  metricsGridDesktop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  metricCardDesktop: {
+    minWidth: 'calc(25% - 12px)',
+    flex: 0,
   },
 });

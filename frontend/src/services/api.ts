@@ -13,6 +13,8 @@ async function getRefreshToken(): Promise<string | null> {
 
 async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const token = await getToken();
+  console.log('🔐 authFetch:', url.split('/').pop(), 'Token exists:', !!token, token ? `(${token.substring(0, 20)}...)` : 'NONE');
+  
   const headers: any = {
     'Content-Type': 'application/json',
     ...(options.headers || {}),
@@ -21,7 +23,11 @@ async function authFetch(url: string, options: RequestInit = {}): Promise<Respon
     headers['Authorization'] = `Bearer ${token}`;
   }
   const res = await fetch(url, { ...options, headers });
+  
+  console.log('🔐 authFetch response:', res.status, res.statusText);
+  
   if (res.status === 401) {
+    console.log('🔐 Got 401, trying refresh token...');
     // Try refresh
     const refreshToken = await getRefreshToken();
     if (refreshToken) {
@@ -33,8 +39,13 @@ async function authFetch(url: string, options: RequestInit = {}): Promise<Respon
         const data = await refreshRes.json();
         await AsyncStorage.setItem('access_token', data.access_token);
         headers['Authorization'] = `Bearer ${data.access_token}`;
+        console.log('🔐 Refreshed token, retrying...');
         return fetch(url, { ...options, headers });
+      } else {
+        console.error('🔐 Refresh failed:', refreshRes.status);
       }
+    } else {
+      console.error('🔐 No refresh token available');
     }
   }
   return res;

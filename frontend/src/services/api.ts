@@ -275,3 +275,24 @@ export async function redeemRewardApi(rewardId: string) {
   if (!res.ok) throw new Error(formatError(data.detail));
   return data;
 }
+
+// Events
+export async function getEventsApi() {
+  const res = await fetch(`${API_BASE}/events`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+// Contests
+export async function getContestsApi() {
+  const res = await fetch(`${API_BASE}/contests`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+// Podcasts
+export async function getPodcastsApi() {
+  const res = await fetch(`${API_BASE}/podcasts`);
+  if (!res.ok) return [];
+  return res.json();
+}

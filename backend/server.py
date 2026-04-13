@@ -135,6 +135,32 @@ class ProfileUpdate(BaseModel):
 class RewardRedeemRequest(BaseModel):
     reward_id: str
 
+class EventCreate(BaseModel):
+    title: str
+    description: str = ""
+    venue: str = ""
+    date: str = ""
+    time: str = ""
+    image_url: str = ""
+    ticket_url: str = ""
+
+class ContestCreate(BaseModel):
+    title: str
+    description: str = ""
+    prize: str = ""
+    end_date: str = ""
+    how_to_enter: str = ""
+    image_url: str = ""
+
+class PodcastCreate(BaseModel):
+    title: str
+    description: str = ""
+    show_name: str = ""
+    dj_name: str = ""
+    duration: str = ""
+    audio_url: str = ""
+    image_url: str = ""
+
 # App setup
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -508,6 +534,64 @@ async def award_points(user_id: str, points: int, description: str, tx_type: str
         "created_at": datetime.now(timezone.utc).isoformat()
     })
 
+# ==================== EVENTS ENDPOINTS ====================
+@api_router.get("/events")
+async def list_events():
+    events = await db.events.find({"active": True}, {"_id": 0}).sort("date", 1).to_list(50)
+    return events
+
+@api_router.post("/events")
+async def create_event(req: EventCreate, user: dict = Depends(require_roles("admin"))):
+    doc = {
+        "event_id": f"evt_{uuid.uuid4().hex[:12]}",
+        "title": req.title, "description": req.description,
+        "venue": req.venue, "date": req.date, "time": req.time,
+        "image_url": req.image_url, "ticket_url": req.ticket_url,
+        "active": True, "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.events.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+# ==================== CONTESTS ENDPOINTS ====================
+@api_router.get("/contests")
+async def list_contests():
+    contests = await db.contests.find({"active": True}, {"_id": 0}).sort("created_at", -1).to_list(20)
+    return contests
+
+@api_router.post("/contests")
+async def create_contest(req: ContestCreate, user: dict = Depends(require_roles("admin"))):
+    doc = {
+        "contest_id": f"cst_{uuid.uuid4().hex[:12]}",
+        "title": req.title, "description": req.description,
+        "prize": req.prize, "end_date": req.end_date,
+        "how_to_enter": req.how_to_enter, "image_url": req.image_url,
+        "active": True, "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.contests.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+# ==================== PODCASTS / REPLAYS ====================
+@api_router.get("/podcasts")
+async def list_podcasts():
+    pods = await db.podcasts.find({}, {"_id": 0}).sort("created_at", -1).to_list(30)
+    return pods
+
+@api_router.post("/podcasts")
+async def create_podcast(req: PodcastCreate, user: dict = Depends(require_roles("admin", "dj"))):
+    doc = {
+        "podcast_id": f"pod_{uuid.uuid4().hex[:12]}",
+        "title": req.title, "description": req.description,
+        "show_name": req.show_name, "dj_name": req.dj_name or user["name"],
+        "duration": req.duration, "audio_url": req.audio_url,
+        "image_url": req.image_url,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.podcasts.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
 # ==================== REWARDS ENDPOINTS ====================
 @api_router.get("/rewards")
 async def list_rewards():
@@ -763,6 +847,40 @@ async def startup():
         ]
         await db.rewards.insert_many(sample_rewards)
         logger.info("Rewards catalog seeded")
+    
+    # Seed events
+    event_count = await db.events.count_documents({})
+    if event_count == 0:
+        sample_events = [
+            {"event_id": f"evt_{uuid.uuid4().hex[:12]}", "title": "Summer Sounds Festival 2026", "description": "Three days of non-stop music featuring headliners from across the country. Multiple stages, food vendors, and art installations.", "venue": "Downtown Amphitheater", "date": "2026-07-18", "time": "12:00 PM - 11:00 PM", "image_url": "https://images.unsplash.com/photo-1773385404894-104116c1ef31?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MDV8MHwxfHNlYXJjaHwxfHxtdXNpYyUyMGZlc3RpdmFsJTIwY3Jvd2QlMjBuZW9ufGVufDB8fHx8MTc3NjA3MDY0M3ww&ixlib=rb-4.1.0&q=85", "ticket_url": "#", "active": True, "created_at": datetime.now(timezone.utc).isoformat()},
+            {"event_id": f"evt_{uuid.uuid4().hex[:12]}", "title": "Beat 515 Block Party", "description": "Free community event with live DJs, local food trucks, and family activities. The Beat 515 live broadcast all day!", "venue": "East Village District", "date": "2026-06-14", "time": "2:00 PM - 9:00 PM", "image_url": "", "ticket_url": "", "active": True, "created_at": datetime.now(timezone.utc).isoformat()},
+            {"event_id": f"evt_{uuid.uuid4().hex[:12]}", "title": "Neon Nights Club Tour", "description": "DJ Pulse takes The Beat 515 on tour across the city's best venues. VIP tables available.", "venue": "Various Locations", "date": "2026-05-23", "time": "9:00 PM - 2:00 AM", "image_url": "https://images.unsplash.com/photo-1724185773486-0b39642e607e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2ODl8MHwxfHNlYXJjaHwyfHxhYnN0cmFjdCUyMG5lb24lMjBzb3VuZHdhdmV8ZW58MHx8fHwxNzc2MDcwNjQzfDA&ixlib=rb-4.1.0&q=85", "ticket_url": "#", "active": True, "created_at": datetime.now(timezone.utc).isoformat()},
+        ]
+        await db.events.insert_many(sample_events)
+        logger.info("Events seeded")
+
+    # Seed contests
+    contest_count = await db.contests.count_documents({})
+    if contest_count == 0:
+        sample_contests = [
+            {"contest_id": f"cst_{uuid.uuid4().hex[:12]}", "title": "Win Backstage Passes!", "description": "Listen for the cue-to-call during the morning show and be caller #5 to win VIP backstage passes to the biggest concert of the year!", "prize": "2x VIP Backstage Passes", "end_date": "2026-05-30", "how_to_enter": "Listen for the cue-to-call and dial in!", "image_url": "", "active": True, "created_at": datetime.now(timezone.utc).isoformat()},
+            {"contest_id": f"cst_{uuid.uuid4().hex[:12]}", "title": "Summer Playlist Challenge", "description": "Create and share your ultimate summer playlist. The best playlist wins a year of premium streaming and Beat 515 merch!", "prize": "Premium Streaming + Merch Bundle", "end_date": "2026-06-15", "how_to_enter": "Submit your playlist via the app request line", "image_url": "", "active": True, "created_at": datetime.now(timezone.utc).isoformat()},
+            {"contest_id": f"cst_{uuid.uuid4().hex[:12]}", "title": "Beat 515 Trivia Night", "description": "Test your music knowledge every Friday at 7 PM. Top scorer each week wins a $50 gift card!", "prize": "$50 Gift Card (Weekly)", "end_date": "2026-12-31", "how_to_enter": "Tune in Fridays at 7 PM and play along", "image_url": "", "active": True, "created_at": datetime.now(timezone.utc).isoformat()},
+        ]
+        await db.contests.insert_many(sample_contests)
+        logger.info("Contests seeded")
+
+    # Seed podcasts / replays
+    pod_count = await db.podcasts.count_documents({})
+    if pod_count == 0:
+        sample_pods = [
+            {"podcast_id": f"pod_{uuid.uuid4().hex[:12]}", "title": "The Evening Pulse - Friday Rewind", "description": "Catch up on Friday's biggest moments from The Evening Pulse with DJ Pulse.", "show_name": "The Evening Pulse", "dj_name": "DJ Pulse", "duration": "2h 15m", "audio_url": "#", "image_url": "https://images.unsplash.com/photo-1765894103984-91ff695bbbaf?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHwzfHxyYWRpbyUyMERKJTIwaG9zdGluZ3xlbnwwfHx8fDE3NzYwNzA2MzB8MA&ixlib=rb-4.1.0&q=85", "created_at": datetime.now(timezone.utc).isoformat()},
+            {"podcast_id": f"pod_{uuid.uuid4().hex[:12]}", "title": "Weekend Warm-Up Mixtape #42", "description": "The latest weekend mixtape with the hottest tracks curated by DJ Pulse.", "show_name": "Weekend Warm-Up", "dj_name": "DJ Pulse", "duration": "1h 30m", "audio_url": "#", "image_url": "", "created_at": (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()},
+            {"podcast_id": f"pod_{uuid.uuid4().hex[:12]}", "title": "Local Spotlight: May Edition", "description": "Featuring interviews and tracks from three incredible local artists in the 515.", "show_name": "Local Spotlight", "dj_name": "The Beat 515", "duration": "58m", "audio_url": "#", "image_url": "https://static.prod-images.emergentagent.com/jobs/b1349ab8-20f7-48b5-b900-fc668397ebb1/images/8d660514dfc2116f64218cda821c96160d24b08bbcff48a69d80d36dbaa8b6ce.png", "created_at": (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()},
+            {"podcast_id": f"pod_{uuid.uuid4().hex[:12]}", "title": "Morning Beat Highlights", "description": "The best moments, interviews, and laughs from this week's morning show.", "show_name": "The Morning Beat", "dj_name": "The Beat 515", "duration": "45m", "audio_url": "#", "image_url": "", "created_at": (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()},
+        ]
+        await db.podcasts.insert_many(sample_pods)
+        logger.info("Podcasts seeded")
     
     logger.info("The Beat 515 backend started successfully!")
 

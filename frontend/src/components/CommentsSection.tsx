@@ -66,7 +66,14 @@ export default function CommentsSection({ postType, postId }: CommentsSectionPro
         throw new Error('Not authenticated');
       }
 
-      await createCommentApi(postType, postId, commentText, token);
+      const result = await createCommentApi(postType, postId, commentText, token);
+      console.log('Comment creation result:', result);
+      
+      // Check if there's an error detail
+      if (result.detail) {
+        throw new Error(result.detail);
+      }
+      
       setCommentText('');
       const successMsg = 'Comment submitted! It will appear after moderation.';
       if (Platform.OS === 'web') {
@@ -76,9 +83,10 @@ export default function CommentsSection({ postType, postId }: CommentsSectionPro
       }
       loadComments();
     } catch (err: any) {
+      console.error('Comment submission error:', err);
       const errMsg = err.message || 'Failed to submit comment';
       if (Platform.OS === 'web') {
-        alert(errMsg);
+        alert('Error: ' + errMsg);
       } else {
         Alert.alert('Error', errMsg);
       }

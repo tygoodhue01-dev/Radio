@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -9,6 +9,8 @@ const API_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
 
 export default function ChartsScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
   const [activeTab, setActiveTab] = useState<'top-rated' | 'most-played' | 'trending'>('top-rated');
   const [songs, setSongs] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -37,7 +39,7 @@ export default function ChartsScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
+      <View style={[styles.header, isDesktop && styles.headerDesktop]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={Colors.white} />
         </TouchableOpacity>
@@ -46,9 +48,9 @@ export default function ChartsScreen() {
       </View>
 
       {/* Tabs */}
-      <View style={styles.tabs}>
+      <View style={[styles.tabs, isDesktop && styles.tabsDesktop]}>
         <TouchableOpacity 
-          style={[styles.tab, activeTab === 'top-rated' && styles.tabActive]} 
+          style={[styles.tab, activeTab === 'top-rated' && styles.tabActive, isDesktop && styles.tabDesktop]} 
           onPress={() => setActiveTab('top-rated')}
         >
           <Ionicons name="star" size={18} color={activeTab === 'top-rated' ? Colors.primary : Colors.textSecondary} />
@@ -56,7 +58,7 @@ export default function ChartsScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity 
-          style={[styles.tab, activeTab === 'most-played' && styles.tabActive]} 
+          style={[styles.tab, activeTab === 'most-played' && styles.tabActive, isDesktop && styles.tabDesktop]} 
           onPress={() => setActiveTab('most-played')}
         >
           <Ionicons name="headset" size={18} color={activeTab === 'most-played' ? Colors.primary : Colors.textSecondary} />
@@ -64,7 +66,7 @@ export default function ChartsScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity 
-          style={[styles.tab, activeTab === 'trending' && styles.tabActive]} 
+          style={[styles.tab, activeTab === 'trending' && styles.tabActive, isDesktop && styles.tabDesktop]} 
           onPress={() => setActiveTab('trending')}
         >
           <Ionicons name="trending-up" size={18} color={activeTab === 'trending' ? Colors.primary : Colors.textSecondary} />
@@ -78,38 +80,78 @@ export default function ChartsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
         }
       >
-        <View style={styles.content}>
-          {songs.map((song, index) => (
-            <View key={index} style={styles.songCard}>
-              <View style={styles.rankBadge}>
-                <Text style={styles.rankText}>#{index + 1}</Text>
-              </View>
-              
-              <View style={styles.songInfo}>
-                <Text style={styles.songTitle} numberOfLines={1}>
-                  {song.song_title}
-                </Text>
-                <Text style={styles.songArtist} numberOfLines={1}>
-                  {song.artist}
-                </Text>
-              </View>
+        <View style={[styles.content, isDesktop && styles.contentDesktop]}>
+          {isDesktop ? (
+            // Desktop: 2 column grid
+            <View style={styles.desktopGrid}>
+              {songs.map((song, index) => (
+                <View key={index} style={styles.songCardDesktop}>
+                  <View style={styles.rankBadge}>
+                    <Text style={styles.rankText}>#{index + 1}</Text>
+                  </View>
+                  
+                  <View style={styles.songInfo}>
+                    <Text style={styles.songTitle} numberOfLines={1}>
+                      {song.song_title}
+                    </Text>
+                    <Text style={styles.songArtist} numberOfLines={1}>
+                      {song.artist}
+                    </Text>
+                  </View>
 
-              <View style={styles.stats}>
-                {activeTab === 'top-rated' && (
-                  <View style={styles.statItem}>
-                    <Ionicons name="star" size={14} color={Colors.accent} />
-                    <Text style={styles.statText}>{song.average_rating}</Text>
+                  <View style={styles.stats}>
+                    {activeTab === 'top-rated' && (
+                      <View style={styles.statItem}>
+                        <Ionicons name="star" size={14} color={Colors.accent} />
+                        <Text style={styles.statText}>{song.average_rating}</Text>
+                      </View>
+                    )}
+                    {(activeTab === 'most-played' || activeTab === 'trending') && (
+                      <View style={styles.statItem}>
+                        <Ionicons name="play" size={14} color={Colors.secondary} />
+                        <Text style={styles.statText}>{song.play_count}</Text>
+                      </View>
+                    )}
                   </View>
-                )}
-                {(activeTab === 'most-played' || activeTab === 'trending') && (
-                  <View style={styles.statItem}>
-                    <Ionicons name="play" size={14} color={Colors.secondary} />
-                    <Text style={styles.statText}>{song.play_count}</Text>
-                  </View>
-                )}
-              </View>
+                </View>
+              ))}
             </View>
-          ))}
+          ) : (
+            // Mobile: single column
+            <>
+              {songs.map((song, index) => (
+                <View key={index} style={styles.songCard}>
+                  <View style={styles.rankBadge}>
+                    <Text style={styles.rankText}>#{index + 1}</Text>
+                  </View>
+                  
+                  <View style={styles.songInfo}>
+                    <Text style={styles.songTitle} numberOfLines={1}>
+                      {song.song_title}
+                    </Text>
+                    <Text style={styles.songArtist} numberOfLines={1}>
+                      {song.artist}
+                    </Text>
+                  </View>
+
+                  <View style={styles.stats}>
+                    {activeTab === 'top-rated' && (
+                      <View style={styles.statItem}>
+                        <Ionicons name="star" size={14} color={Colors.accent} />
+                        <Text style={styles.statText}>{song.average_rating}</Text>
+                      </View>
+                    )}
+                    {(activeTab === 'most-played' || activeTab === 'trending') && (
+                      <View style={styles.statItem}>
+                        <Ionicons name="play" size={14} color={Colors.secondary} />
+                        <Text style={styles.statText}>{song.play_count}</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </>
+          )}
 
           {songs.length === 0 && !refreshing && (
             <View style={styles.emptyState}>
@@ -263,5 +305,40 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     marginTop: Spacing.sm,
     textAlign: 'center',
+  },
+  // Desktop styles
+  headerDesktop: {
+    maxWidth: 1200,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  tabsDesktop: {
+    maxWidth: 1200,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  tabDesktop: {
+    paddingVertical: Spacing.md,
+  },
+  contentDesktop: {
+    maxWidth: 1200,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  desktopGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.md,
+  },
+  songCardDesktop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    width: 'calc(50% - 8px)',
+    minWidth: 400,
   },
 });

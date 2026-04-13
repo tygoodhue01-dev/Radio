@@ -58,6 +58,7 @@ export default function AdminScreen() {
 
   const loadData = useCallback(async () => {
     try {
+      console.log('Admin: Loading data...');
       const promises = [
         getAdminStatsApi(), 
         getAdminUsersApi(), 
@@ -69,19 +70,33 @@ export default function AdminScreen() {
       
       // Only admins and editors can see pending comments
       if (user?.role === 'admin' || user?.role === 'editor') {
+        console.log('Admin: Loading pending comments...');
         promises.push(getPendingCommentsApi());
       }
       
       const results = await Promise.all(promises);
+      console.log('Admin: Data loaded', {
+        stats: results[0],
+        users: results[1]?.length,
+        requests: results[2]?.length,
+        news: results[3]?.length,
+        schedule: results[4]?.length,
+        jobs: results[5]?.length,
+        comments: results[6]?.length
+      });
+      
       setStats(results[0]); 
       setUsers(results[1]); 
       setRequests(results[2]); 
       setAllNews(results[3]);
       setScheduleSlots(results[4]);
       setJobApplications(results[5]);
-      if (results[6]) setPendingComments(results[6]);
+      if (results[6]) {
+        console.log('Admin: Setting pending comments:', results[6]);
+        setPendingComments(results[6]);
+      }
     } catch (e) { 
-      console.error('Load data error:', e); 
+      console.error('Admin: Load data error:', e); 
     }
     setLoading(false);
     setRefreshing(false);

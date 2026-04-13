@@ -440,15 +440,36 @@ async def get_now_playing():
 
 @api_router.put("/now-playing")
 async def update_now_playing(req: NowPlayingUpdate, user: dict = Depends(require_roles("admin", "dj"))):
+    # Get current now playing to check if song changed
+    current = await db.now_playing.find_one({"active": True}, {"_id": 0})
+    current_song = current.get("song_title", "") if current else ""
+    current_artist = current.get("artist", "") if current else ""
+    
     np_doc = {
         "song_title": req.song_title,
         "artist": req.artist,
         "album": req.album,
         "dj_name": user["name"],
         "active": True,
-        "started_at": datetime.now(timezone.utc).isoformat()
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "source": "manual_update"
     }
     await db.now_playing.update_one({"active": True}, {"$set": np_doc}, upsert=True)
+    
+    # Add to recently played if song changed
+    if req.song_title != current_song or req.artist != current_artist:
+        recently_played_doc = {
+            "song_id": f"song_{uuid.uuid4().hex[:12]}",
+            "song_title": req.song_title,
+            "artist": req.artist,
+            "album": req.album or "",
+            "played_at": datetime.now(timezone.utc).isoformat(),
+            "source": "manual_update",
+            "dj_name": user["name"]
+        }
+        await db.recently_played.insert_one(recently_played_doc)
+        logger.info(f"DJ {user['name']} updated now playing: {req.artist} - {req.song_title}")
+    
     return np_doc
 
 # ==================== DJ PROFILES ====================

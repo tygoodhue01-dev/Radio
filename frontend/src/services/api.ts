@@ -346,10 +346,8 @@ export async function getCommentsApi(postType: string, postId: string) {
   return res.json();
 }
 
-export async function getPendingCommentsApi(token: string) {
-  const res = await fetch(`${API_BASE}/admin/comments/pending`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
+export async function getPendingCommentsApi() {
+  const res = await authFetch(`${API_BASE}/admin/comments/pending`);
   if (!res.ok) return [];
   return res.json();
 }

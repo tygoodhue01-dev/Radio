@@ -8,6 +8,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { getNewsDetailApi } from '@/src/services/api';
 import { Colors, Spacing, FontSizes, BorderRadius } from '@/src/theme';
 import { WebNavBar, WebContainer, WebFooter, useIsWebDesktop } from '@/src/components/WebShell';
+import CommentsSection from '@/src/components/CommentsSection';
 
 export default function NewsDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -53,6 +54,10 @@ export default function NewsDetail() {
         <Text style={[styles.title, isWeb && { fontSize: 36 }]}>{article.title}</Text>
         <Text style={styles.author}>By {article.author_name}</Text>
         <Text style={[styles.body, isWeb && { fontSize: 17, lineHeight: 30 }]}>{article.content}</Text>
+        
+        {/* Comments Section */}
+        {article.news_id && <CommentsSection postType="news" postId={article.news_id} />}
+        
         {isWeb && (
           <TouchableOpacity onPress={() => router.push('/(tabs)/news')} style={{ marginTop: 32, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Ionicons name="arrow-back" size={16} color={Colors.primary} /><Text style={{ color: Colors.primary, fontWeight: '700', fontSize: 14 }}>Back to News</Text>

@@ -10,12 +10,13 @@ import { useAuth } from '@/src/contexts/AuthContext';
 import {
   getAdminUsersApi, getAdminStatsApi, updateUserRoleApi,
   getAdminRequestsApi, updateRequestStatusApi, createNewsApi,
-  updateNowPlayingApi, deleteUserApi, getNewsApi, updateNewsApi, deleteNewsApi
+  updateNowPlayingApi, deleteUserApi, getNewsApi, updateNewsApi, deleteNewsApi,
+  getPendingCommentsApi, approveCommentApi, deleteCommentApi, deleteRequestApi
 } from '@/src/services/api';
 import { Colors, Spacing, FontSizes, BorderRadius } from '@/src/theme';
 import { WebNavBar, WebFooter } from '@/src/components/WebShell';
 
-type AdminTab = 'overview' | 'users' | 'requests' | 'content' | 'nowplaying' | 'manage-news';
+type AdminTab = 'overview' | 'users' | 'requests' | 'content' | 'nowplaying' | 'manage-news' | 'comments';
 
 export default function AdminScreen() {
   const { user } = useAuth();
@@ -27,6 +28,7 @@ export default function AdminScreen() {
   const [users, setUsers] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
   const [allNews, setAllNews] = useState<any[]>([]);
+  const [pendingComments, setPendingComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   
@@ -48,16 +50,27 @@ export default function AdminScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [s, u, r, n] = await Promise.all([
+      const promises = [
         getAdminStatsApi(), 
         getAdminUsersApi(), 
         getAdminRequestsApi(),
         getNewsApi()
-      ]);
-      setStats(s); setUsers(u); setRequests(r); setAllNews(n);
+      ];
+      
+      // Only admins and editors can see pending comments
+      if (user?.role === 'admin' || user?.role === 'editor') {
+        promises.push(getPendingCommentsApi());
+      }
+      
+      const results = await Promise.all(promises);
+      setStats(results[0]); 
+      setUsers(results[1]); 
+      setRequests(results[2]); 
+      setAllNews(results[3]);
+      if (results[4]) setPendingComments(results[4]);
     } catch (e) { console.error(e); }
     setLoading(false);
-  }, []);
+  }, [user]);
 
   useEffect(() => { loadData(); }, [loadData]);
   const onRefresh = async () => { setRefreshing(true); await loadData(); setRefreshing(false); };
@@ -184,6 +197,7 @@ export default function AdminScreen() {
     { key: 'users', label: 'Users', icon: 'people', roles: ['admin'] },
     { key: 'content', label: 'Publish News', icon: 'create', roles: ['admin', 'editor'] },
     { key: 'manage-news', label: 'Manage News', icon: 'newspaper', roles: ['admin', 'editor'] },
+    { key: 'comments', label: 'Comments', icon: 'chatbubbles', roles: ['admin', 'editor'] },
   ];
 
   const pendingCount = requests.filter(r => r.status === 'pending').length;

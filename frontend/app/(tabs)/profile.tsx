@@ -104,6 +104,20 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         )}
 
+        {/* My Profile - Enhanced */}
+        <TouchableOpacity
+          testID="my-profile-btn"
+          style={styles.menuItem}
+          onPress={() => router.push('/profile/my-profile')}
+        >
+          <Ionicons name="person" size={22} color={Colors.secondary} />
+          <View style={styles.menuInfo}>
+            <Text style={styles.menuTitle}>My Profile</Text>
+            <Text style={styles.menuSub}>View favorites, stats & edit bio</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
+        </TouchableOpacity>
+
         {/* Menu Items */}
         <TouchableOpacity testID="about-btn" style={styles.menuItem}>
           <Ionicons name="information-circle" size={22} color={Colors.secondary} />

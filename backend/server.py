@@ -488,6 +488,47 @@ async def get_my_favorites(user: dict = Depends(get_current_user)):
     favorites = await db.favorites.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
     return favorites
 
+@api_router.put("/users/me/profile")
+async def update_my_profile(req: ProfileUpdate, user: dict = Depends(get_current_user)):
+    """Update current user's profile (name, bio)"""
+    update_data = {}
+    if req.name is not None:
+        update_data["name"] = req.name
+    if req.bio is not None:
+        update_data["bio"] = req.bio
+    
+    if update_data:
+        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        await db.users.update_one({"user_id": user["user_id"]}, {"$set": update_data})
+    
+    updated = await db.users.find_one({"user_id": user["user_id"]}, {"_id": 0, "password_hash": 0})
+    return updated
+
+@api_router.get("/users/me/stats")
+async def get_my_stats(user: dict = Depends(get_current_user)):
+    """Get user's activity statistics"""
+    user_id = user["user_id"]
+    
+    # Count favorites
+    favorites_count = await db.favorites.count_documents({"user_id": user_id})
+    
+    # Count requests made
+    requests_count = await db.requests.count_documents({"user_id": user_id})
+    
+    # Count songs rated
+    ratings_count = await db.ratings.count_documents({"user_id": user_id})
+    
+    # Get user's points (from user document or rewards)
+    user_doc = await db.users.find_one({"user_id": user_id})
+    points = user_doc.get("points", 0) if user_doc else 0
+    
+    return {
+        "favorites": favorites_count,
+        "requests_made": requests_count,
+        "songs_rated": ratings_count,
+        "points": points
+    }
+
 @api_router.get("/admin/favorites/stats")
 async def get_favorite_stats(user: dict = Depends(get_current_user)):
     """Get aggregated favorite song statistics for admin dashboard"""

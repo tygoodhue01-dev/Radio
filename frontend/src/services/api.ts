@@ -295,16 +295,6 @@ export async function getStreamConfigApi() {
   return res.json();
 }
 
-// Profile
-export async function updateProfileApi(data: any) {
-  const res = await authFetch(`${API_BASE}/profile`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error('Failed to update');
-  return res.json();
-}
-
 // Rewards
 export async function getRewardsApi() {
   const res = await fetch(`${API_BASE}/rewards`);
@@ -583,6 +573,24 @@ export async function toggleFavoriteApi(songId: string, songTitle: string, artis
 export async function getMyFavoritesApi() {
   const res = await authFetch(`${API_BASE}/users/me/favorites`);
   if (!res.ok) throw new Error('Failed to fetch favorites');
+  return res.json();
+}
+
+export async function updateProfileApi(data: { name?: string; bio?: string }) {
+  const res = await authFetch(`${API_BASE}/users/me/profile`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to update profile');
+  }
+  return res.json();
+}
+
+export async function getMyStatsApi() {
+  const res = await authFetch(`${API_BASE}/users/me/stats`);
+  if (!res.ok) throw new Error('Failed to fetch stats');
   return res.json();
 }
 

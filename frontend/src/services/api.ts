@@ -227,8 +227,17 @@ export async function getAdminUsersApi() {
   return res.json();
 }
 
+export async function updateUserApi(userId: string, data: { name?: string; email?: string; role?: string; bio?: string }) {
+  const res = await authFetch(`${API_BASE}/admin/users/${userId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update user');
+  return res.json();
+}
+
 export async function updateUserRoleApi(userId: string, role: string) {
-  const res = await authFetch(`${API_BASE}/admin/users/${userId}/role`, {
+  const res = await authFetch(`${API_BASE}/admin/users/${userId}`, {
     method: 'PUT',
     body: JSON.stringify({ role }),
   });

@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/src/contexts/AuthContext';
 import {
-  getAdminUsersApi, getAdminStatsApi, updateUserRoleApi,
+  getAdminUsersApi, getAdminStatsApi, updateUserRoleApi, updateUserApi,
   getAdminRequestsApi, updateRequestStatusApi, createNewsApi,
   updateNowPlayingApi, deleteUserApi, getNewsApi, updateNewsApi, deleteNewsApi,
   getPendingCommentsApi, approveCommentApi, deleteCommentApi, deleteRequestApi,
@@ -157,13 +157,28 @@ export default function AdminScreen() {
   const handleSaveUser = async () => {
     if (!editingUser) return;
     try {
-      await updateUserRoleApi(editingUser.user_id, editingUser.role);
+      await updateUserApi(editingUser.user_id, {
+        name: editingUser.name,
+        email: editingUser.email,
+        role: editingUser.role,
+        bio: editingUser.bio
+      });
       setEditUserModal(false);
       setEditingUser(null);
       await loadData();
-      Alert.alert('Success', 'User updated');
+      const msg = 'User updated successfully';
+      if (Platform.OS === 'web') {
+        alert(msg);
+      } else {
+        Alert.alert('Success', msg);
+      }
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      const errMsg = e.message || 'Failed to update user';
+      if (Platform.OS === 'web') {
+        alert(errMsg);
+      } else {
+        Alert.alert('Error', errMsg);
+      }
     }
   };
 

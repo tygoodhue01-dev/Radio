@@ -83,7 +83,7 @@ export default function HomeScreen() {
     }
     try {
       const songId = `${nowPlaying?.song_title}_${nowPlaying?.artist}`.replace(/\s/g, '_');
-      const res = await fetch(`${API_BASE}/api/songs/${songId}/favorite?song_title=${encodeURIComponent(nowPlaying?.song_title)}&artist=${encodeURIComponent(nowPlaying?.artist)}`, {
+      const res = await fetch(`${API_BASE}/songs/${songId}/favorite?song_title=${encodeURIComponent(nowPlaying?.song_title || '')}&artist=${encodeURIComponent(nowPlaying?.artist || '')}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${user.access_token}` }
       });
@@ -91,9 +91,13 @@ export default function HomeScreen() {
         const data = await res.json();
         setIsFavorite(data.favorited);
         Alert.alert('Success', data.message);
+      } else {
+        console.error('Favorite API error:', res.status);
+        Alert.alert('Error', 'Failed to update favorite');
       }
     } catch (e) {
       console.error('Favorite failed:', e);
+      Alert.alert('Error', 'Network error');
     }
   };
 
@@ -352,6 +356,16 @@ function WebLayout({ user, router, nowPlaying, news, shows, events, contests, po
             <View style={s.wHeroBtns}>
               <TouchableOpacity testID="play-radio-button" style={s.wPlayBtn} onPress={()=>setIsPlaying(!isPlaying)}>
                 <Ionicons name={isPlaying?'pause':'play'} size={24} color="#fff"/><Text style={s.wPlayTxt}>{isPlaying?'PAUSE':'LISTEN LIVE'}</Text>
+              </TouchableOpacity>
+              {user && (
+                <TouchableOpacity style={s.wFavBtn} onPress={toggleFavorite}>
+                  <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={20} color={isFavorite ? Colors.primary : '#fff'} />
+                  <Text style={[s.wFavTxt, isFavorite && {color: Colors.primary}]}>{isFavorite ? 'FAVORITED' : 'FAVORITE'}</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={s.wShareBtn} onPress={shareSong}>
+                <Ionicons name="share-social-outline" size={18} color={Colors.secondary} />
+                <Text style={s.wShareTxt}>SHARE</Text>
               </TouchableOpacity>
               <TouchableOpacity style={s.wReqBtn} onPress={()=>router.push('/(tabs)/requests')}>
                 <Ionicons name="musical-notes" size={18} color={Colors.primary}/><Text style={s.wReqTxt}>REQUEST A SONG</Text>
@@ -845,6 +859,10 @@ const s = StyleSheet.create({
   wReqTxt:{fontSize:12,fontWeight:'700',color:Colors.primary,letterSpacing:1},
   wRecentBtn:{flexDirection:'row',alignItems:'center',gap:8,backgroundColor:'rgba(255,255,255,0.05)',borderRadius:BorderRadius.round,paddingHorizontal:20,paddingVertical:14},
   wRecentTxt:{fontSize:12,fontWeight:'700',color:Colors.secondary,letterSpacing:1},
+  wFavBtn:{flexDirection:'row',alignItems:'center',gap:8,backgroundColor:'rgba(255,0,127,0.15)',borderRadius:BorderRadius.round,paddingHorizontal:20,paddingVertical:14,borderWidth:1,borderColor:'rgba(255,0,127,0.4)'},
+  wFavTxt:{fontSize:12,fontWeight:'700',color:'#fff',letterSpacing:1},
+  wShareBtn:{flexDirection:'row',alignItems:'center',gap:8,backgroundColor:'rgba(0,240,255,0.1)',borderRadius:BorderRadius.round,paddingHorizontal:20,paddingVertical:14,borderWidth:1,borderColor:'rgba(0,240,255,0.3)'},
+  wShareTxt:{fontSize:12,fontWeight:'700',color:Colors.secondary,letterSpacing:1},
   wHeroRight:{alignItems:'flex-end'},wTagBig:{fontSize:64,fontWeight:'900',color:'rgba(255,255,255,0.06)',letterSpacing:8,lineHeight:70},
   // Container
   wContainer:{maxWidth:1200,alignSelf:'center',width:'100%',paddingHorizontal:32},

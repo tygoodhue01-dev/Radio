@@ -488,6 +488,50 @@ async def get_my_favorites(user: dict = Depends(get_current_user)):
     favorites = await db.favorites.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
     return favorites
 
+@api_router.get("/admin/favorites/stats")
+async def get_favorite_stats(user: dict = Depends(get_current_user)):
+    """Get aggregated favorite song statistics for admin dashboard"""
+    if user.get("role") not in ["admin", "dj"]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # Get top favorited songs
+    pipeline = [
+        {"$group": {
+            "_id": {"song_title": "$song_title", "artist": "$artist"},
+            "count": {"$sum": 1},
+            "last_favorited": {"$max": "$created_at"}
+        }},
+        {"$sort": {"count": -1}},
+        {"$limit": 20}
+    ]
+    top_songs = await db.favorites.aggregate(pipeline).to_list(20)
+    
+    # Get total favorites count
+    total_favorites = await db.favorites.count_documents({})
+    
+    # Get unique users who have favorited
+    unique_users = len(await db.favorites.distinct("user_id"))
+    
+    # Get recent favorites (last 24 hours)
+    from datetime import datetime, timedelta
+    yesterday = datetime.utcnow() - timedelta(days=1)
+    recent_count = await db.favorites.count_documents({"created_at": {"$gte": yesterday.isoformat()}})
+    
+    return {
+        "top_songs": [
+            {
+                "song_title": s["_id"]["song_title"],
+                "artist": s["_id"]["artist"],
+                "favorite_count": s["count"],
+                "last_favorited": s.get("last_favorited")
+            }
+            for s in top_songs
+        ],
+        "total_favorites": total_favorites,
+        "unique_users": unique_users,
+        "favorites_last_24h": recent_count
+    }
+
 # ==================== CHARTS & TRENDING ====================
 @api_router.get("/charts/top-rated")
 async def get_top_rated_songs(limit: int = 50):

@@ -115,7 +115,7 @@ export default function HomeScreen() {
   useEffect(() => { loadData(); const i = setInterval(loadData, 120000); return () => clearInterval(i); }, [loadData]); // Refresh every 2 minutes
   const onRefresh = async () => { setRefreshing(true); await loadData(); setRefreshing(false); };
 
-  if (isWeb) return <WebLayout {...{ user, router, nowPlaying, news, shows, events, contests, podcasts, djs, isPlaying, setIsPlaying, onRefresh, refreshing }} />;
+  if (isWeb) return <WebLayout {...{ user, router, nowPlaying, news, shows, events, contests, podcasts, djs, isPlaying, setIsPlaying, onRefresh, refreshing, toggleFavorite, shareSong, isFavorite }} />;
 
   // ============ MOBILE LAYOUT ============
   return (
@@ -204,7 +204,7 @@ export default function HomeScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity style={s.actionBtn} onPress={() => setShowAdvancedPlayer(true)}>
-                  <Ionicons name="equalizer-outline" size={26} color={Colors.secondary} />
+                  <Ionicons name="options-outline" size={26} color={Colors.secondary} />
                 </TouchableOpacity>
               </View>
 
@@ -314,7 +314,7 @@ export default function HomeScreen() {
 }
 
 // ============ FULL WEB LAYOUT (iHeartRadio style) ============
-function WebLayout({ user, router, nowPlaying, news, shows, events, contests, podcasts, djs, isPlaying, setIsPlaying, onRefresh, refreshing }: any) {
+function WebLayout({ user, router, nowPlaying, news, shows, events, contests, podcasts, djs, isPlaying, setIsPlaying, onRefresh, refreshing, toggleFavorite, shareSong, isFavorite }: any) {
   return (
     <ScrollView style={s.wPage} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}>
       {/* ===== TOP NAV BAR ===== */}

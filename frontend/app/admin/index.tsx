@@ -1174,6 +1174,31 @@ export default function AdminScreen() {
       <Text style={st.panelTitle}>Push Notifications</Text>
       <Text style={st.panelSub}>Send push notifications to all app users</Text>
 
+      {/* Web Platform Notice */}
+      {Platform.OS === 'web' && (
+        <View style={{ 
+          backgroundColor: 'rgba(0,240,255,0.1)', 
+          borderWidth: 1, 
+          borderColor: Colors.secondary, 
+          borderRadius: BorderRadius.lg, 
+          padding: 16, 
+          marginTop: 16,
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          gap: 12
+        }}>
+          <Ionicons name="information-circle" size={24} color={Colors.secondary} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: Colors.secondary, fontWeight: '700', fontSize: 14, marginBottom: 4 }}>
+              Push Notifications on Mobile Only
+            </Text>
+            <Text style={{ color: Colors.textSecondary, fontSize: 13, lineHeight: 20 }}>
+              Push notifications are delivered to users via the mobile app (iOS/Android). Web browsers don't receive push notifications through this system. Users need to download the app and enable notifications on their device to receive alerts.
+            </Text>
+          </View>
+        </View>
+      )}
+
       {/* Stats */}
       <View style={{ flexDirection: 'row', gap: 12, marginVertical: 20 }}>
         <View style={[st.statCard, { flex: 1 }]}>

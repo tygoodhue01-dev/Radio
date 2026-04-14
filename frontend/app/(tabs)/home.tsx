@@ -11,9 +11,10 @@ import {
   getNowPlayingApi, getNewsApi, getShowsApi, getEventsApi,
   getContestsApi, getPodcastsApi, getDjsApi
 } from '@/src/services/api';
-import { Colors, Spacing, FontSizes, BorderRadius } from '@/src/theme';
+import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '@/src/theme';
 import AdvancedPlayer from '@/src/components/AdvancedPlayer';
 import WeatherWidget from '@/src/components/WeatherWidget';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -117,14 +118,18 @@ export default function HomeScreen() {
     <SafeAreaView style={s.safe} edges={['top']}>
       <ScrollView style={s.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}>
         <View style={s.mPad}>
+          {/* Header with gradient accent line */}
           <View style={s.mHeader}>
             <View>
-              <Text style={s.mBrand}>THE BEAT 515</Text>
+              <Text style={s.mBrand}>THE BEAT <Text style={s.mBrand515}>515</Text></Text>
               <Text style={s.mTag}>PROUD. LOUD. LOCAL.</Text>
             </View>
             {!user ? (
               <TouchableOpacity testID="home-login-btn" onPress={() => router.push('/(auth)/login')} style={s.mSignIn}>
-                <Text style={s.mSignInTxt}>Sign In</Text>
+                <LinearGradient colors={[Colors.primary, Colors.primaryDark]} style={s.mSignInGrad}>
+                  <Ionicons name="person" size={14} color="#fff" />
+                  <Text style={s.mSignInTxt}>Sign In</Text>
+                </LinearGradient>
               </TouchableOpacity>
             ) : user.role === 'admin' || user.role === 'dj' ? (
               <TouchableOpacity testID="admin-nav-btn" onPress={() => router.push('/admin')} style={s.mIconBtn}>
@@ -132,72 +137,163 @@ export default function HomeScreen() {
               </TouchableOpacity>
             ) : null}
           </View>
-          <View style={s.mHero}>
-            <View style={s.mLiveRow}><View style={s.mLiveBadge}><View style={s.mLiveDot} /><Text style={s.mLiveTxt}>LIVE</Text></View><Text style={s.mDj}>{nowPlaying?.dj_name || 'AutoDJ'}</Text></View>
-            <Text style={s.mSong}>{nowPlaying?.song_title || 'The Beat 515'}</Text>
-            <Text style={s.mArtist}>{nowPlaying?.artist || 'Live Radio'}</Text>
-            
-            {/* Rating Stars */}
-            {user && (
-              <View style={s.ratingRow}>
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <TouchableOpacity key={star} onPress={() => rateSong(star)}>
-                    <Ionicons 
-                      name={star <= songRating ? 'star' : 'star-outline'} 
-                      size={24} 
-                      color={star <= songRating ? Colors.accent : Colors.border} 
-                    />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
 
-            {/* Action Buttons */}
-            <View style={s.actionRow}>
-              <TouchableOpacity testID="play-radio-button" style={s.mPlay} onPress={() => setIsPlaying(!isPlaying)}>
-                <Ionicons name={isPlaying ? 'pause' : 'play'} size={32} color="#fff" />
-              </TouchableOpacity>
+          {/* Hero Player Card with Glassmorphism */}
+          <View style={s.mHeroWrapper}>
+            <LinearGradient 
+              colors={['rgba(255,0,127,0.15)', 'rgba(0,240,255,0.08)', 'transparent']} 
+              start={{x: 0, y: 0}} 
+              end={{x: 1, y: 1}}
+              style={s.mHeroGradient}
+            />
+            <View style={s.mHero}>
+              {/* Animated live indicator */}
+              <View style={s.mLiveRow}>
+                <View style={s.mLiveBadge}>
+                  <View style={s.mLiveDot} />
+                  <Text style={s.mLiveTxt}>LIVE</Text>
+                </View>
+                <View style={s.mDjBadge}>
+                  <Ionicons name="mic" size={12} color={Colors.secondary} />
+                  <Text style={s.mDj}>{nowPlaying?.dj_name || 'AutoDJ'}</Text>
+                </View>
+              </View>
+
+              {/* Song info with better hierarchy */}
+              <Text style={s.mSong}>{nowPlaying?.song_title || 'The Beat 515'}</Text>
+              <Text style={s.mArtist}>{nowPlaying?.artist || 'Live Radio'}</Text>
               
+              {/* Rating Stars */}
               {user && (
-                <TouchableOpacity style={s.actionBtn} onPress={toggleFavorite}>
-                  <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={28} color={isFavorite ? Colors.primary : Colors.textSecondary} />
-                </TouchableOpacity>
+                <View style={s.ratingRow}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <TouchableOpacity key={star} onPress={() => rateSong(star)} style={s.starBtn}>
+                      <Ionicons 
+                        name={star <= songRating ? 'star' : 'star-outline'} 
+                        size={22} 
+                        color={star <= songRating ? Colors.accent : Colors.textMuted} 
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
               )}
 
-              <TouchableOpacity style={s.actionBtn} onPress={shareSong}>
-                <Ionicons name="share-social-outline" size={28} color={Colors.secondary} />
-              </TouchableOpacity>
+              {/* Main Play Button with Glow */}
+              <View style={s.actionRow}>
+                <TouchableOpacity testID="play-radio-button" style={s.mPlayOuter} onPress={() => setIsPlaying(!isPlaying)}>
+                  <LinearGradient 
+                    colors={[Colors.primary, Colors.primaryDark]} 
+                    style={s.mPlay}
+                  >
+                    <Ionicons name={isPlaying ? 'pause' : 'play'} size={32} color="#fff" />
+                  </LinearGradient>
+                </TouchableOpacity>
+                
+                {user && (
+                  <TouchableOpacity style={s.actionBtn} onPress={toggleFavorite}>
+                    <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={26} color={isFavorite ? Colors.primary : Colors.textSecondary} />
+                  </TouchableOpacity>
+                )}
 
-              <TouchableOpacity style={s.actionBtn} onPress={() => setShowAdvancedPlayer(true)}>
-                <Ionicons name="options-outline" size={28} color={Colors.secondary} />
-              </TouchableOpacity>
+                <TouchableOpacity style={s.actionBtn} onPress={shareSong}>
+                  <Ionicons name="share-social-outline" size={26} color={Colors.secondary} />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={s.actionBtn} onPress={() => setShowAdvancedPlayer(true)}>
+                  <Ionicons name="equalizer-outline" size={26} color={Colors.secondary} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Quick Links */}
+              <View style={s.mQuickLinks}>
+                <TouchableOpacity onPress={() => router.push('/recently-played')} style={s.mRecentLink}>
+                  <Ionicons name="time-outline" size={14} color={Colors.secondary} />
+                  <Text style={s.mRecentTxt}>Recently Played</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => router.push('/charts')} style={s.mRecentLink}>
+                  <Ionicons name="trending-up" size={14} color={Colors.accent} />
+                  <Text style={[s.mRecentTxt, {color: Colors.accent}]}>Charts</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-
-            <TouchableOpacity onPress={() => router.push('/recently-played')} style={s.mRecentLink}>
-              <Ionicons name="time-outline" size={14} color={Colors.secondary} />
-              <Text style={s.mRecentTxt}>Recently Played</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push('/charts')} style={s.mRecentLink}>
-              <Ionicons name="stats-chart-outline" size={14} color={Colors.accent} />
-              <Text style={[s.mRecentTxt, {color: Colors.accent}]}>Charts</Text>
-            </TouchableOpacity>
           </View>
+
+          {/* Quick Action Cards */}
           <View style={s.mQuick}>
-            {[{icon:'musical-notes',label:'Request',c:Colors.primary,t:'/(tabs)/requests'},{icon:'newspaper',label:'News',c:Colors.secondary,t:'/(tabs)/news'},{icon:'gift',label:'Rewards',c:Colors.accent,t:'/(tabs)/rewards'}].map(q=>(
-              <TouchableOpacity key={q.label} style={s.mQBtn} onPress={()=>router.push(q.t as any)}>
-                <Ionicons name={q.icon as any} size={22} color={q.c} /><Text style={s.mQLbl}>{q.label}</Text>
+            {[
+              {icon:'musical-notes', label:'Request', c:Colors.primary, bg:'rgba(255,0,127,0.12)', t:'/(tabs)/requests'},
+              {icon:'newspaper', label:'News', c:Colors.secondary, bg:'rgba(0,240,255,0.12)', t:'/(tabs)/news'},
+              {icon:'gift', label:'Rewards', c:Colors.accent, bg:'rgba(255,240,0,0.12)', t:'/(tabs)/rewards'}
+            ].map(q=>(
+              <TouchableOpacity key={q.label} style={[s.mQBtn, {backgroundColor: q.bg}]} onPress={()=>router.push(q.t as any)}>
+                <View style={[s.mQIconWrap, {backgroundColor: q.c + '20'}]}>
+                  <Ionicons name={q.icon as any} size={22} color={q.c} />
+                </View>
+                <Text style={s.mQLbl}>{q.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
           
           {/* Weather Widget */}
-          <View style={{ marginHorizontal: Spacing.lg, marginTop: Spacing.lg }}>
+          <View style={{ marginTop: Spacing.lg }}>
             <WeatherWidget />
           </View>
 
-          {shows.length>0&&<><Text style={s.secTitle}>ON-AIR SHOWS</Text><ScrollView horizontal showsHorizontalScrollIndicator={false}>{shows.map(sh=>(<View key={sh.show_id} style={s.mShowCard}>{sh.image_url?<Image source={{uri:sh.image_url}} style={s.mShowImg}/>:<View style={[s.mShowImg,s.mShowPh]}><Ionicons name="mic" size={28} color={Colors.primary}/></View>}<Text style={s.mShowNm} numberOfLines={1}>{sh.name}</Text><Text style={s.mShowSch}>{sh.schedule}</Text></View>))}</ScrollView></>}
-          {news.length>0&&<><View style={s.secRow}><Text style={s.secTitle}>LATEST NEWS</Text><TouchableOpacity onPress={()=>router.push('/(tabs)/news')}><Text style={s.seeAll}>See All</Text></TouchableOpacity></View>{news.slice(0,3).map(a=>(<TouchableOpacity key={a.news_id} style={s.mNewsCard} onPress={()=>router.push(`/news/${a.news_id}`)}>{a.image_url?<Image source={{uri:a.image_url}} style={s.mNewsImg}/>:null}<View style={s.mNewsTxt}><Text style={s.mNewsCat}>{a.category?.toUpperCase()}</Text><Text style={s.mNewsTitle} numberOfLines={2}>{a.title}</Text></View></TouchableOpacity>))}</>}
-          <View style={{height:40}}/>
+          {/* Shows Section */}
+          {shows.length > 0 && (
+            <View style={s.sectionWrap}>
+              <View style={s.secHeaderRow}>
+                <View style={s.secTitleWrap}>
+                  <View style={s.secDot} />
+                  <Text style={s.secTitle}>ON-AIR SHOWS</Text>
+                </View>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingRight: 20}}>
+                {shows.map(sh => (
+                  <View key={sh.show_id} style={s.mShowCard}>
+                    {sh.image_url ? (
+                      <Image source={{uri: sh.image_url}} style={s.mShowImg} />
+                    ) : (
+                      <LinearGradient colors={[Colors.surfaceLight, Colors.surface]} style={[s.mShowImg, s.mShowPh]}>
+                        <Ionicons name="mic" size={28} color={Colors.primary} />
+                      </LinearGradient>
+                    )}
+                    <View style={s.mShowInfo}>
+                      <Text style={s.mShowNm} numberOfLines={1}>{sh.name}</Text>
+                      <Text style={s.mShowSch}>{sh.schedule}</Text>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* News Section */}
+          {news.length > 0 && (
+            <View style={s.sectionWrap}>
+              <View style={s.secHeaderRow}>
+                <View style={s.secTitleWrap}>
+                  <View style={[s.secDot, {backgroundColor: Colors.secondary}]} />
+                  <Text style={s.secTitle}>LATEST NEWS</Text>
+                </View>
+                <TouchableOpacity onPress={() => router.push('/(tabs)/news')}>
+                  <Text style={s.seeAll}>See All <Ionicons name="arrow-forward" size={12} color={Colors.primary} /></Text>
+                </TouchableOpacity>
+              </View>
+              {news.slice(0, 3).map(a => (
+                <TouchableOpacity key={a.news_id} style={s.mNewsCard} onPress={() => router.push(`/news/${a.news_id}`)}>
+                  {a.image_url && <Image source={{uri: a.image_url}} style={s.mNewsImg} />}
+                  <View style={s.mNewsTxt}>
+                    <View style={[s.mNewsCatBadge, {backgroundColor: a.category === 'music' ? Colors.primary + '20' : Colors.secondary + '20'}]}>
+                      <Text style={[s.mNewsCat, {color: a.category === 'music' ? Colors.primary : Colors.secondary}]}>{a.category?.toUpperCase()}</Text>
+                    </View>
+                    <Text style={s.mNewsTitle} numberOfLines={2}>{a.title}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          <View style={{height: 40}} />
         </View>
       </ScrollView>
 
@@ -399,32 +495,331 @@ function WebLayout({ user, router, nowPlaying, news, shows, events, contests, po
 
 const s = StyleSheet.create({
   // ===== MOBILE =====
-  safe:{flex:1,backgroundColor:Colors.background},scroll:{flex:1},mPad:{paddingHorizontal:Spacing.lg},
-  mHeader:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',paddingTop:Spacing.md,paddingBottom:Spacing.sm},
-  mBrand:{fontSize:FontSizes.xl,fontWeight:'900',color:Colors.primary,letterSpacing:3},mTag:{fontSize:FontSizes.xs,fontWeight:'600',color:Colors.secondary,letterSpacing:3,marginTop:2},
-  mSignIn:{backgroundColor:Colors.primary,borderRadius:BorderRadius.round,paddingHorizontal:16,paddingVertical:8},mSignInTxt:{color:'#fff',fontWeight:'700',fontSize:FontSizes.sm},
-  mIconBtn:{width:40,height:40,borderRadius:20,backgroundColor:Colors.surface,alignItems:'center',justifyContent:'center',borderWidth:1,borderColor:Colors.border},
-  mHero:{backgroundColor:Colors.surface,borderRadius:BorderRadius.xl,padding:Spacing.lg,borderWidth:1,borderColor:'rgba(255,0,127,0.3)',alignItems:'center',marginTop:Spacing.md},
-  mLiveRow:{flexDirection:'row',alignItems:'center',marginBottom:Spacing.md},mLiveBadge:{flexDirection:'row',alignItems:'center',backgroundColor:'rgba(255,240,0,0.15)',paddingHorizontal:10,paddingVertical:4,borderRadius:BorderRadius.round,marginRight:8},
-  mLiveDot:{width:8,height:8,borderRadius:4,backgroundColor:Colors.accent,marginRight:6},mLiveTxt:{fontSize:FontSizes.xs,fontWeight:'800',color:Colors.accent,letterSpacing:2},
-  mDj:{fontSize:FontSizes.sm,color:Colors.textSecondary,fontWeight:'600'},mSong:{fontSize:FontSizes.xxl,fontWeight:'800',color:'#fff',textAlign:'center',marginBottom:4},
-  mArtist:{fontSize:FontSizes.lg,color:Colors.textSecondary,textAlign:'center',marginBottom:Spacing.lg},
-  mPlay:{width:72,height:72,borderRadius:36,backgroundColor:Colors.primary,alignItems:'center',justifyContent:'center'},
-  ratingRow:{flexDirection:'row',gap:6,marginTop:Spacing.md,marginBottom:Spacing.sm},
-  actionRow:{flexDirection:'row',alignItems:'center',gap:Spacing.md,marginTop:Spacing.md},
-  actionBtn:{width:48,height:48,borderRadius:24,backgroundColor:Colors.surface,alignItems:'center',justifyContent:'center',borderWidth:1,borderColor:Colors.border},
-  mRecentLink:{flexDirection:'row',alignItems:'center',gap:6,marginTop:Spacing.md,paddingVertical:8,paddingHorizontal:12,borderRadius:BorderRadius.round,backgroundColor:'rgba(255,255,255,0.05)'},
-  mRecentTxt:{fontSize:FontSizes.xs,color:Colors.secondary,fontWeight:'600',letterSpacing:1},
-  mQuick:{flexDirection:'row',justifyContent:'space-around',marginVertical:Spacing.lg},mQBtn:{alignItems:'center',backgroundColor:Colors.surface,borderRadius:BorderRadius.lg,padding:Spacing.md,width:90,borderWidth:1,borderColor:Colors.border},
-  mQLbl:{fontSize:FontSizes.xs,color:Colors.textSecondary,fontWeight:'600',marginTop:6},
-  secTitle:{fontSize:FontSizes.xs,fontWeight:'800',color:Colors.secondary,letterSpacing:3,marginBottom:Spacing.md,marginTop:Spacing.sm},
-  secRow:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginBottom:Spacing.md},seeAll:{fontSize:FontSizes.sm,color:Colors.primary,fontWeight:'600'},
-  mShowCard:{width:160,marginRight:Spacing.md,backgroundColor:Colors.surface,borderRadius:BorderRadius.lg,overflow:'hidden',borderWidth:1,borderColor:Colors.border},
-  mShowImg:{width:'100%',height:100},mShowPh:{backgroundColor:Colors.surfaceLight,alignItems:'center',justifyContent:'center'},
-  mShowNm:{fontSize:FontSizes.md,fontWeight:'700',color:'#fff',padding:8,paddingBottom:2},mShowSch:{fontSize:FontSizes.xs,color:Colors.secondary,paddingHorizontal:8,paddingBottom:8},
-  mNewsCard:{backgroundColor:Colors.surface,borderRadius:BorderRadius.lg,marginBottom:Spacing.sm,overflow:'hidden',borderWidth:1,borderColor:Colors.border},
-  mNewsImg:{width:'100%',height:120},mNewsTxt:{padding:Spacing.md},mNewsCat:{fontSize:FontSizes.xs,fontWeight:'700',color:Colors.secondary,letterSpacing:2,marginBottom:4},
-  mNewsTitle:{fontSize:FontSizes.lg,fontWeight:'700',color:'#fff'},
+  safe: { flex: 1, backgroundColor: Colors.background },
+  scroll: { flex: 1 },
+  mPad: { paddingHorizontal: Spacing.md },
+  
+  // Header
+  mHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    paddingTop: Spacing.lg, 
+    paddingBottom: Spacing.md 
+  },
+  mBrand: { 
+    fontSize: FontSizes.xl, 
+    fontWeight: '900', 
+    color: '#fff', 
+    letterSpacing: 2 
+  },
+  mBrand515: { 
+    color: Colors.primary 
+  },
+  mTag: { 
+    fontSize: FontSizes.xs, 
+    fontWeight: '700', 
+    color: Colors.secondary, 
+    letterSpacing: 3, 
+    marginTop: 2 
+  },
+  mSignIn: { 
+    overflow: 'hidden', 
+    borderRadius: BorderRadius.round 
+  },
+  mSignInGrad: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 6, 
+    paddingHorizontal: 16, 
+    paddingVertical: 10 
+  },
+  mSignInTxt: { 
+    color: '#fff', 
+    fontWeight: '700', 
+    fontSize: FontSizes.sm 
+  },
+  mIconBtn: { 
+    width: 44, 
+    height: 44, 
+    borderRadius: 22, 
+    backgroundColor: Colors.glassAccent, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    borderWidth: 1, 
+    borderColor: Colors.borderGlow 
+  },
+
+  // Hero Section
+  mHeroWrapper: { 
+    marginTop: Spacing.sm, 
+    borderRadius: BorderRadius.xl, 
+    overflow: 'hidden', 
+    position: 'relative' 
+  },
+  mHeroGradient: { 
+    position: 'absolute', 
+    top: 0, 
+    left: 0, 
+    right: 0, 
+    bottom: 0 
+  },
+  mHero: { 
+    backgroundColor: Colors.surfaceGlass, 
+    borderRadius: BorderRadius.xl, 
+    padding: Spacing.lg, 
+    borderWidth: 1, 
+    borderColor: Colors.borderGlow, 
+    alignItems: 'center' 
+  },
+  mLiveRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: Spacing.sm, 
+    marginBottom: Spacing.md 
+  },
+  mLiveBadge: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: 'rgba(255,240,0,0.18)', 
+    paddingHorizontal: 12, 
+    paddingVertical: 5, 
+    borderRadius: BorderRadius.round 
+  },
+  mLiveDot: { 
+    width: 8, 
+    height: 8, 
+    borderRadius: 4, 
+    backgroundColor: Colors.accent, 
+    marginRight: 6 
+  },
+  mLiveTxt: { 
+    fontSize: FontSizes.xs, 
+    fontWeight: '800', 
+    color: Colors.accent, 
+    letterSpacing: 2 
+  },
+  mDjBadge: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 4, 
+    backgroundColor: Colors.glassCyan, 
+    paddingHorizontal: 10, 
+    paddingVertical: 4, 
+    borderRadius: BorderRadius.round 
+  },
+  mDj: { 
+    fontSize: FontSizes.sm, 
+    color: Colors.secondary, 
+    fontWeight: '600' 
+  },
+  mSong: { 
+    fontSize: FontSizes.xxl, 
+    fontWeight: '900', 
+    color: '#fff', 
+    textAlign: 'center', 
+    marginBottom: 4, 
+    letterSpacing: -0.5 
+  },
+  mArtist: { 
+    fontSize: FontSizes.lg, 
+    color: Colors.textSecondary, 
+    textAlign: 'center', 
+    fontWeight: '500' 
+  },
+
+  // Rating & Actions
+  ratingRow: { 
+    flexDirection: 'row', 
+    gap: 4, 
+    marginTop: Spacing.md, 
+    marginBottom: Spacing.xs 
+  },
+  starBtn: { 
+    padding: 4 
+  },
+  actionRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: Spacing.md, 
+    marginTop: Spacing.lg 
+  },
+  mPlayOuter: { 
+    ...Shadows.glow, 
+    borderRadius: 40 
+  },
+  mPlay: { 
+    width: 80, 
+    height: 80, 
+    borderRadius: 40, 
+    alignItems: 'center', 
+    justifyContent: 'center' 
+  },
+  actionBtn: { 
+    width: 50, 
+    height: 50, 
+    borderRadius: 25, 
+    backgroundColor: Colors.glassLight, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    borderWidth: 1, 
+    borderColor: Colors.borderLight 
+  },
+
+  // Quick Links
+  mQuickLinks: { 
+    flexDirection: 'row', 
+    gap: Spacing.sm, 
+    marginTop: Spacing.lg 
+  },
+  mRecentLink: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 6, 
+    paddingVertical: 8, 
+    paddingHorizontal: 14, 
+    borderRadius: BorderRadius.round, 
+    backgroundColor: Colors.glassLight, 
+    borderWidth: 1, 
+    borderColor: Colors.border 
+  },
+  mRecentTxt: { 
+    fontSize: FontSizes.xs, 
+    color: Colors.secondary, 
+    fontWeight: '600', 
+    letterSpacing: 0.5 
+  },
+
+  // Quick Actions Grid
+  mQuick: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    marginTop: Spacing.lg, 
+    gap: Spacing.sm 
+  },
+  mQBtn: { 
+    flex: 1, 
+    alignItems: 'center', 
+    borderRadius: BorderRadius.lg, 
+    padding: Spacing.md, 
+    borderWidth: 1, 
+    borderColor: Colors.border 
+  },
+  mQIconWrap: { 
+    width: 44, 
+    height: 44, 
+    borderRadius: 22, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginBottom: Spacing.xs 
+  },
+  mQLbl: { 
+    fontSize: FontSizes.xs, 
+    color: Colors.textSecondary, 
+    fontWeight: '700', 
+    marginTop: 4, 
+    letterSpacing: 0.5 
+  },
+
+  // Section Headers
+  sectionWrap: { 
+    marginTop: Spacing.xl 
+  },
+  secHeaderRow: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginBottom: Spacing.md 
+  },
+  secTitleWrap: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: Spacing.sm 
+  },
+  secDot: { 
+    width: 4, 
+    height: 16, 
+    borderRadius: 2, 
+    backgroundColor: Colors.primary 
+  },
+  secTitle: { 
+    fontSize: FontSizes.xs, 
+    fontWeight: '800', 
+    color: Colors.textSecondary, 
+    letterSpacing: 2 
+  },
+  seeAll: { 
+    fontSize: FontSizes.sm, 
+    color: Colors.primary, 
+    fontWeight: '600' 
+  },
+
+  // Show Cards
+  mShowCard: { 
+    width: 160, 
+    marginRight: Spacing.md, 
+    backgroundColor: Colors.surface, 
+    borderRadius: BorderRadius.lg, 
+    overflow: 'hidden', 
+    borderWidth: 1, 
+    borderColor: Colors.border 
+  },
+  mShowImg: { 
+    width: '100%', 
+    height: 100 
+  },
+  mShowPh: { 
+    alignItems: 'center', 
+    justifyContent: 'center' 
+  },
+  mShowInfo: { 
+    padding: Spacing.sm 
+  },
+  mShowNm: { 
+    fontSize: FontSizes.md, 
+    fontWeight: '700', 
+    color: '#fff' 
+  },
+  mShowSch: { 
+    fontSize: FontSizes.xs, 
+    color: Colors.secondary, 
+    marginTop: 2 
+  },
+
+  // News Cards
+  mNewsCard: { 
+    backgroundColor: Colors.surface, 
+    borderRadius: BorderRadius.lg, 
+    marginBottom: Spacing.sm, 
+    overflow: 'hidden', 
+    borderWidth: 1, 
+    borderColor: Colors.border 
+  },
+  mNewsImg: { 
+    width: '100%', 
+    height: 140 
+  },
+  mNewsTxt: { 
+    padding: Spacing.md 
+  },
+  mNewsCatBadge: { 
+    alignSelf: 'flex-start', 
+    paddingHorizontal: 10, 
+    paddingVertical: 3, 
+    borderRadius: BorderRadius.round, 
+    marginBottom: Spacing.xs 
+  },
+  mNewsCat: { 
+    fontSize: FontSizes.xs, 
+    fontWeight: '700', 
+    letterSpacing: 1 
+  },
+  mNewsTitle: { 
+    fontSize: FontSizes.lg, 
+    fontWeight: '700', 
+    color: '#fff', 
+    lineHeight: 24 
+  },
 
   // ===== WEB =====
   wPage:{flex:1,backgroundColor:Colors.background},

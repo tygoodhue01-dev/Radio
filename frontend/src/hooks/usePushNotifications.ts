@@ -20,13 +20,15 @@ export function usePushNotifications() {
   const { user } = useAuth();
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [notification, setNotification] = useState<Notifications.Notification | null>(null);
+  const [isWebPlatform, setIsWebPlatform] = useState(false);
   const notificationListener = useRef<any>();
   const responseListener = useRef<any>();
 
   useEffect(() => {
     // Only set up push notifications on native devices
     if (Platform.OS === 'web') {
-      console.log('Push notifications not available on web');
+      console.log('Push notifications not available on web browsers. Please use the mobile app for push notifications.');
+      setIsWebPlatform(true);
       return;
     }
 
@@ -69,7 +71,7 @@ export function usePushNotifications() {
     };
   }, [user]);
 
-  return { expoPushToken, notification };
+  return { expoPushToken, notification, isWebPlatform };
 }
 
 async function registerForPushNotificationsAsync(): Promise<string | null> {

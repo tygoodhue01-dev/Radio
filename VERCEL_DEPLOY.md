@@ -18,7 +18,7 @@
 3. **Configure Project:**
    - **Framework Preset:** Other
    - **Root Directory:** `./` (leave as is)
-   - **Build Command:** `cd frontend && npx expo export:web`
+   - **Build Command:** `cd frontend && npx expo export --platform web`
    - **Output Directory:** `frontend/dist`
    - **Install Command:** `cd frontend && yarn install`
 
@@ -61,7 +61,7 @@ Follow prompts:
 - Project name? **radio** (or your choice)
 - Directory? `./` (press Enter)
 - Override settings? **Y**
-  - Build Command: `cd frontend && npx expo export:web`
+  - Build Command: `cd frontend && npx expo export --platform web`
   - Output Directory: `frontend/dist`
   - Install Command: `cd frontend && yarn install`
 

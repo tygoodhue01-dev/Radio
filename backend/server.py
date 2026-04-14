@@ -490,16 +490,19 @@ async def get_my_favorites(user: dict = Depends(get_current_user)):
 
 @api_router.put("/users/me/profile")
 async def update_my_profile(req: ProfileUpdate, user: dict = Depends(get_current_user)):
-    """Update current user's profile (name, bio)"""
+    """Update current user's profile (name, bio, avatar)"""
     update_data = {}
     if req.name is not None:
         update_data["name"] = req.name
     if req.bio is not None:
         update_data["bio"] = req.bio
+    if req.avatar_url is not None:
+        update_data["avatar_url"] = req.avatar_url
     
     if update_data:
         update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
-        await db.users.update_one({"user_id": user["user_id"]}, {"$set": update_data})
+        result = await db.users.update_one({"user_id": user["user_id"]}, {"$set": update_data})
+        logger.info(f"Profile update for {user['user_id']}: modified={result.modified_count}, data={update_data}")
     
     updated = await db.users.find_one({"user_id": user["user_id"]}, {"_id": 0, "password_hash": 0})
     return updated

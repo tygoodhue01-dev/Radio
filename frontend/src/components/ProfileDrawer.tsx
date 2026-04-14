@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform,
-  Modal, Animated, Dimensions, TextInput, Alert, Pressable
+  Modal, Animated, Dimensions, TextInput, Alert, Pressable, Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -25,6 +25,8 @@ export default function ProfileDrawer({ visible, onClose }: ProfileDrawerProps) 
   const [editing, setEditing] = useState(false);
   const [bio, setBio] = useState('');
   const [name, setName] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [showAvatarInput, setShowAvatarInput] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -38,6 +40,7 @@ export default function ProfileDrawer({ visible, onClose }: ProfileDrawerProps) 
       if (user) {
         setName(user.name || '');
         setBio(user.bio || '');
+        setAvatarUrl(user.avatar_url || '');
         loadProfileData();
       }
     } else {
@@ -47,7 +50,7 @@ export default function ProfileDrawer({ visible, onClose }: ProfileDrawerProps) 
         useNativeDriver: true,
       }).start();
     }
-  }, [visible]);
+  }, [visible, user]);
 
   const loadProfileData = async () => {
     try {
@@ -64,12 +67,13 @@ export default function ProfileDrawer({ visible, onClose }: ProfileDrawerProps) 
 
   const handleSaveProfile = async () => {
     try {
-      await updateProfileApi({ name, bio });
+      await updateProfileApi({ name, bio, avatar_url: avatarUrl || undefined });
       await refreshUser?.();
       setEditing(false);
+      setShowAvatarInput(false);
       alert('Profile updated!');
     } catch (e: any) {
-      alert(e.message);
+      alert(e.message || 'Failed to update profile');
     }
   };
 
@@ -99,6 +103,7 @@ export default function ProfileDrawer({ visible, onClose }: ProfileDrawerProps) 
   if (!user) return null;
 
   const roleBadge = getRoleBadge(user.role);
+  const displayAvatarUrl = avatarUrl || user.avatar_url;
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
@@ -123,9 +128,22 @@ export default function ProfileDrawer({ visible, onClose }: ProfileDrawerProps) 
                 />
                 
                 <View style={s.profileRow}>
-                  <View style={[s.avatar, { borderColor: roleBadge.color }]}>
-                    <Text style={s.avatarText}>{user.name?.charAt(0)?.toUpperCase()}</Text>
-                  </View>
+                  {/* Avatar with edit option */}
+                  <TouchableOpacity 
+                    style={[s.avatarContainer, { borderColor: roleBadge.color }]}
+                    onPress={() => setShowAvatarInput(!showAvatarInput)}
+                  >
+                    {displayAvatarUrl ? (
+                      <Image source={{ uri: displayAvatarUrl }} style={s.avatarImage} />
+                    ) : (
+                      <LinearGradient colors={[roleBadge.color, Colors.primary]} style={s.avatarFallback}>
+                        <Text style={s.avatarText}>{user.name?.charAt(0)?.toUpperCase()}</Text>
+                      </LinearGradient>
+                    )}
+                    <View style={s.avatarEditBadge}>
+                      <Ionicons name="camera" size={12} color="#fff" />
+                    </View>
+                  </TouchableOpacity>
                   
                   <View style={s.profileInfo}>
                     {editing ? (
@@ -147,9 +165,26 @@ export default function ProfileDrawer({ visible, onClose }: ProfileDrawerProps) 
                   </View>
                 </View>
 
+                {/* Avatar URL Input */}
+                {showAvatarInput && (
+                  <View style={s.avatarInputSection}>
+                    <Text style={s.inputLabel}>Profile Photo URL</Text>
+                    <TextInput
+                      style={s.avatarInput}
+                      value={avatarUrl}
+                      onChangeText={setAvatarUrl}
+                      placeholder="https://example.com/your-photo.jpg"
+                      placeholderTextColor={Colors.textMuted}
+                      autoCapitalize="none"
+                    />
+                    <Text style={s.inputHint}>Paste a link to your profile photo (Imgur, Discord, etc.)</Text>
+                  </View>
+                )}
+
                 {/* Bio */}
                 {editing ? (
                   <View style={s.bioEditSection}>
+                    <Text style={s.inputLabel}>Bio</Text>
                     <TextInput
                       style={s.bioInput}
                       value={bio}
@@ -160,11 +195,17 @@ export default function ProfileDrawer({ visible, onClose }: ProfileDrawerProps) 
                       numberOfLines={2}
                     />
                     <View style={s.editActions}>
-                      <TouchableOpacity style={s.cancelBtn} onPress={() => { setEditing(false); setName(user.name || ''); setBio(user.bio || ''); }}>
+                      <TouchableOpacity style={s.cancelBtn} onPress={() => { 
+                        setEditing(false); 
+                        setShowAvatarInput(false);
+                        setName(user.name || ''); 
+                        setBio(user.bio || ''); 
+                        setAvatarUrl(user.avatar_url || '');
+                      }}>
                         <Text style={s.cancelBtnTxt}>Cancel</Text>
                       </TouchableOpacity>
                       <TouchableOpacity style={s.saveBtn} onPress={handleSaveProfile}>
-                        <Text style={s.saveBtnTxt}>Save</Text>
+                        <Text style={s.saveBtnTxt}>Save Changes</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -181,18 +222,22 @@ export default function ProfileDrawer({ visible, onClose }: ProfileDrawerProps) 
               {/* Stats */}
               <View style={s.statsRow}>
                 <View style={s.statItem}>
+                  <Ionicons name="heart" size={16} color={Colors.primary} />
                   <Text style={s.statValue}>{stats.favorites || favorites.length || 0}</Text>
                   <Text style={s.statLabel}>Favorites</Text>
                 </View>
                 <View style={s.statItem}>
+                  <Ionicons name="musical-notes" size={16} color={Colors.secondary} />
                   <Text style={s.statValue}>{stats.requests_made || 0}</Text>
                   <Text style={s.statLabel}>Requests</Text>
                 </View>
                 <View style={s.statItem}>
+                  <Ionicons name="star" size={16} color={Colors.accent} />
                   <Text style={s.statValue}>{stats.songs_rated || 0}</Text>
                   <Text style={s.statLabel}>Rated</Text>
                 </View>
                 <View style={s.statItem}>
+                  <Ionicons name="gift" size={16} color={Colors.success} />
                   <Text style={s.statValue}>{stats.points || 0}</Text>
                   <Text style={s.statLabel}>Points</Text>
                 </View>
@@ -322,19 +367,40 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.md,
   },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.surfaceLight,
+  avatarContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  avatarFallback: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#fff',
+  },
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-  },
-  avatarText: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#fff',
+    borderColor: Colors.surface,
   },
   profileInfo: {
     flex: 1,
@@ -373,6 +439,37 @@ const s = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 1,
   },
+
+  // Avatar Input
+  avatarInputSection: {
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  inputLabel: {
+    fontSize: FontSizes.xs,
+    fontWeight: '700',
+    color: Colors.textMuted,
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  avatarInput: {
+    fontSize: FontSizes.sm,
+    color: '#fff',
+    padding: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.background,
+  },
+  inputHint: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    marginTop: 4,
+  },
+
+  // Bio
   bioRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -393,7 +490,10 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   bioEditSection: {
-    marginTop: Spacing.sm,
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
   },
   bioInput: {
     fontSize: FontSizes.sm,
@@ -402,33 +502,34 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: BorderRadius.md,
-    minHeight: 50,
+    minHeight: 60,
+    backgroundColor: Colors.background,
   },
   editActions: {
     flexDirection: 'row',
     gap: Spacing.sm,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.md,
     justifyContent: 'flex-end',
   },
   cancelBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: BorderRadius.round,
     backgroundColor: Colors.surfaceLight,
   },
   cancelBtnTxt: {
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
     fontWeight: '600',
     color: Colors.textSecondary,
   },
   saveBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: BorderRadius.round,
     backgroundColor: Colors.primary,
   },
   saveBtnTxt: {
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
     fontWeight: '700',
     color: '#fff',
   },
@@ -447,12 +548,13 @@ const s = StyleSheet.create({
     borderRadius: BorderRadius.sm,
   },
   statValue: {
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.md,
     fontWeight: '800',
     color: '#fff',
+    marginTop: 4,
   },
   statLabel: {
-    fontSize: 10,
+    fontSize: 9,
     color: Colors.textMuted,
     marginTop: 2,
   },

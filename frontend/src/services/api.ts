@@ -576,7 +576,7 @@ export async function getMyFavoritesApi() {
   return res.json();
 }
 
-export async function updateProfileApi(data: { name?: string; bio?: string }) {
+export async function updateProfileApi(data: { name?: string; bio?: string; avatar_url?: string }) {
   const res = await authFetch(`${API_BASE}/users/me/profile`, {
     method: 'PUT',
     body: JSON.stringify(data),

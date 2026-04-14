@@ -304,7 +304,7 @@ function WebLayout({ user, router, nowPlaying, news, shows, events, contests, po
             <Text style={s.wLogo}>THE BEAT <Text style={s.wLogo515}>515</Text></Text>
           </View>
           <View style={s.wNavLinks}>
-            {[{l:'Home',t:'/(tabs)/home'},{l:'News',t:'/(tabs)/news'},{l:'Request Line',t:'/(tabs)/requests'},{l:'Rewards',t:'/(tabs)/rewards'}].map(n=>(
+            {[{l:'Home',t:'/(tabs)/home'},{l:'News',t:'/(tabs)/news'},{l:'Request Line',t:'/(tabs)/requests'},{l:'Schedule',t:'/schedule'}].map(n=>(
               <TouchableOpacity key={n.l} onPress={()=>router.push(n.t as any)} style={s.wNavLink}><Text style={s.wNavLinkTxt}>{n.l.toUpperCase()}</Text></TouchableOpacity>
             ))}
           </View>

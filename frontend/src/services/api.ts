@@ -2,9 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
 // Get backend URL from environment - works for both Expo and web builds
+// Priority: env variable > expo config > hardcoded fallback for production
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 
                     Constants.expoConfig?.extra?.backendUrl || 
-                    '';
+                    'https://radio-production-3743.up.railway.app';
+
+console.log('🔗 API Backend URL:', BACKEND_URL);
 const API_BASE = `${BACKEND_URL}/api`;
 
 async function getToken(): Promise<string | null> {

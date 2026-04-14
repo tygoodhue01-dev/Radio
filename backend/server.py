@@ -714,6 +714,7 @@ async def get_analytics_overview(user: dict = Depends(require_roles("admin"))):
     total_songs_played = await db.recently_played.count_documents({})
     total_ratings = await db.song_ratings.count_documents({})
     total_requests = await db.song_requests.count_documents({})
+    total_favorites = await db.favorites.count_documents({})
     
     # Users in last 7 days
     seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
@@ -723,13 +724,29 @@ async def get_analytics_overview(user: dict = Depends(require_roles("admin"))):
     today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0).isoformat()
     songs_today = await db.recently_played.count_documents({"played_at": {"$gte": today}})
     
+    # Top favorited songs
+    top_favorites_pipeline = [
+        {"$group": {
+            "_id": {"song_title": "$song_title", "artist": "$artist"},
+            "count": {"$sum": 1}
+        }},
+        {"$sort": {"count": -1}},
+        {"$limit": 5}
+    ]
+    top_favorites = await db.favorites.aggregate(top_favorites_pipeline).to_list(5)
+    
     return {
         "total_users": total_users,
         "new_users_7d": new_users,
         "total_songs_played": total_songs_played,
         "songs_played_today": songs_today,
         "total_ratings": total_ratings,
-        "total_requests": total_requests
+        "total_requests": total_requests,
+        "total_favorites": total_favorites,
+        "top_favorites": [
+            {"song": f["_id"]["song_title"], "artist": f["_id"]["artist"], "count": f["count"]}
+            for f in top_favorites
+        ]
     }
 
 @api_router.get("/analytics/users")

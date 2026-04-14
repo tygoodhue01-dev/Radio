@@ -122,6 +122,17 @@ export default function AnalyticsDashboard() {
                   <Text style={styles.desktopMetricTrend}>All time</Text>
                 </View>
               </View>
+
+              <View style={[styles.desktopMetricCard, { borderLeftColor: '#ec4899' }]}>
+                <View style={styles.desktopMetricIcon}>
+                  <Ionicons name="heart" size={28} color="#ec4899" />
+                </View>
+                <View style={styles.desktopMetricInfo}>
+                  <Text style={styles.desktopMetricValue}>{stats?.total_favorites || 0}</Text>
+                  <Text style={styles.desktopMetricLabel}>Song Favorites</Text>
+                  <Text style={styles.desktopMetricTrend}>User engagement</Text>
+                </View>
+              </View>
             </View>
 
             {/* Main Content Grid */}
@@ -203,6 +214,30 @@ export default function AnalyticsDashboard() {
                     <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
                   </TouchableOpacity>
                 </View>
+
+                {/* Top Favorited Songs */}
+                {stats?.top_favorites?.length > 0 && (
+                  <View style={[styles.desktopStatsCard, { marginTop: 20 }]}>
+                    <View style={styles.desktopSectionHeader}>
+                      <Ionicons name="heart" size={24} color="#ec4899" />
+                      <Text style={styles.desktopSectionTitle}>Top Favorites</Text>
+                    </View>
+                    <View style={styles.desktopStatsList}>
+                      {stats.top_favorites.slice(0, 5).map((fav: any, idx: number) => (
+                        <View key={idx} style={styles.desktopStatRow}>
+                          <View style={[styles.desktopStatIcon, { backgroundColor: '#ec489920' }]}>
+                            <Text style={{ color: '#ec4899', fontWeight: '800', fontSize: 12 }}>{idx + 1}</Text>
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.desktopStatLabel} numberOfLines={1}>{fav.song}</Text>
+                            <Text style={{ color: Colors.textMuted, fontSize: 11 }}>{fav.artist}</Text>
+                          </View>
+                          <Text style={styles.desktopStatValue}>{fav.count} ❤️</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
               </View>
             </View>
             <View style={{ height: 40 }} />

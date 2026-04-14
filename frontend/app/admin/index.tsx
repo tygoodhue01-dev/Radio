@@ -999,13 +999,35 @@ export default function AdminScreen() {
         <Text style={st.mHeaderTitle}>DASHBOARD</Text>
         <View style={{ width: 24 }} />
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={st.mTabScroll} contentContainerStyle={st.mTabContent}>
+      
+      {/* Mobile Navigation Grid */}
+      <View style={st.mNavGrid}>
         {sidebarItems.filter(i => i.roles.includes(user.role)).map(item => (
-          <TouchableOpacity key={item.key} testID={`admin-tab-${item.key}`} style={[st.mTabBtn, tab === item.key && st.mTabActive]} onPress={() => setTab(item.key)}>
-            <Text style={[st.mTabTxt, tab === item.key && st.mTabTxtActive]}>{item.label.toUpperCase()}</Text>
+          <TouchableOpacity 
+            key={item.key} 
+            testID={`admin-tab-${item.key}`} 
+            style={[st.mNavItem, tab === item.key && st.mNavItemActive]} 
+            onPress={() => setTab(item.key)}
+          >
+            <View style={[st.mNavIconWrap, tab === item.key && st.mNavIconWrapActive]}>
+              <Ionicons 
+                name={item.icon as any} 
+                size={22} 
+                color={tab === item.key ? '#fff' : Colors.textMuted} 
+              />
+              {item.key === 'requests' && pendingCount > 0 && (
+                <View style={st.mNavBadge}>
+                  <Text style={st.mNavBadgeTxt}>{pendingCount}</Text>
+                </View>
+              )}
+            </View>
+            <Text style={[st.mNavLabel, tab === item.key && st.mNavLabelActive]} numberOfLines={1}>
+              {item.label}
+            </Text>
           </TouchableOpacity>
         ))}
-      </ScrollView>
+      </View>
+      
       <ScrollView style={{ flex: 1, paddingHorizontal: Spacing.lg }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}>
         {renderPanel()}
         <View style={{ height: 60 }} />
@@ -1279,6 +1301,73 @@ const st = StyleSheet.create({
   // Mobile
   mHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   mHeaderTitle: { fontSize: 16, fontWeight: '900', color: '#fff', letterSpacing: 3 },
+  
+  // Mobile Navigation Grid
+  mNavGrid: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    paddingHorizontal: Spacing.md, 
+    paddingVertical: Spacing.sm,
+    gap: 8,
+    backgroundColor: Colors.surface,
+    marginHorizontal: Spacing.md,
+    marginBottom: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  mNavItem: { 
+    width: '30%',
+    alignItems: 'center', 
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderRadius: BorderRadius.md,
+  },
+  mNavItemActive: { 
+    backgroundColor: 'rgba(255,0,127,0.15)',
+  },
+  mNavIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+    position: 'relative',
+  },
+  mNavIconWrapActive: {
+    backgroundColor: Colors.primary,
+  },
+  mNavLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: Colors.textMuted,
+    textAlign: 'center',
+  },
+  mNavLabelActive: {
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+  mNavBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: Colors.accent,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  mNavBadgeTxt: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.background,
+  },
+  
+  // Old mobile tabs (keeping for backwards compat)
   mTabScroll: { maxHeight: 44 },
   mTabContent: { paddingHorizontal: Spacing.lg, gap: 8 },
   mTabBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },

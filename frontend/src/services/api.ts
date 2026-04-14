@@ -567,3 +567,38 @@ export async function getPushHistoryApi() {
   if (!res.ok) throw new Error('Failed to fetch push history');
   return res.json();
 }
+
+// ==================== FAVORITES ====================
+export async function toggleFavoriteApi(songId: string, songTitle: string, artist: string) {
+  const res = await authFetch(`${API_BASE}/songs/${encodeURIComponent(songId)}/favorite?song_title=${encodeURIComponent(songTitle)}&artist=${encodeURIComponent(artist)}`, {
+    method: 'POST'
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to toggle favorite');
+  }
+  return res.json();
+}
+
+export async function getMyFavoritesApi() {
+  const res = await authFetch(`${API_BASE}/users/me/favorites`);
+  if (!res.ok) throw new Error('Failed to fetch favorites');
+  return res.json();
+}
+
+export async function rateSongApi(songId: string, songTitle: string, artist: string, rating: number) {
+  const res = await authFetch(`${API_BASE}/songs/rate`, {
+    method: 'POST',
+    body: JSON.stringify({
+      song_id: songId,
+      song_title: songTitle,
+      artist: artist,
+      rating: rating
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to rate song');
+  }
+  return res.json();
+}

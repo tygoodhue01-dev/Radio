@@ -9,7 +9,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/src/contexts/AuthContext';
 import {
   getNowPlayingApi, getNewsApi, getShowsApi, getEventsApi,
-  getContestsApi, getPodcastsApi, getDjsApi
+  getContestsApi, getPodcastsApi, getDjsApi, toggleFavoriteApi, rateSongApi
 } from '@/src/services/api';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '@/src/theme';
 import AdvancedPlayer from '@/src/components/AdvancedPlayer';
@@ -35,12 +35,10 @@ export default function HomeScreen() {
   const [songRating, setSongRating] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
 
-  const API_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
-
   const shareSong = async () => {
     try {
       await Share.share({
-        message: `🎵 Now Playing on The Beat 515: ${nowPlaying?.song_title} by ${nowPlaying?.artist}\n\nListen live: https://opener-2.preview.emergentagent.com`,
+        message: `🎵 Now Playing on The Beat 515: ${nowPlaying?.song_title} by ${nowPlaying?.artist}\n\nListen live: https://thebeat515.com`,
         title: 'Share Now Playing'
       });
     } catch (e) {
@@ -54,25 +52,13 @@ export default function HomeScreen() {
       return;
     }
     try {
-      const res = await fetch(`${API_BASE}/api/songs/rate`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${user.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          song_id: `${nowPlaying?.song_title}_${nowPlaying?.artist}`.replace(/\s/g, '_'),
-          song_title: nowPlaying?.song_title,
-          artist: nowPlaying?.artist,
-          rating
-        })
-      });
-      if (res.ok) {
-        setSongRating(rating);
-        Alert.alert('Success', `Rated ${rating} stars!`);
-      }
-    } catch (e) {
+      const songId = `${nowPlaying?.song_title}_${nowPlaying?.artist}`.replace(/\s/g, '_');
+      await rateSongApi(songId, nowPlaying?.song_title || '', nowPlaying?.artist || '', rating);
+      setSongRating(rating);
+      Alert.alert('Success', `Rated ${rating} stars!`);
+    } catch (e: any) {
       console.error('Rating failed:', e);
+      Alert.alert('Error', e.message || 'Failed to rate song');
     }
   };
 
@@ -83,21 +69,12 @@ export default function HomeScreen() {
     }
     try {
       const songId = `${nowPlaying?.song_title}_${nowPlaying?.artist}`.replace(/\s/g, '_');
-      const res = await fetch(`${API_BASE}/songs/${songId}/favorite?song_title=${encodeURIComponent(nowPlaying?.song_title || '')}&artist=${encodeURIComponent(nowPlaying?.artist || '')}`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${user.access_token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setIsFavorite(data.favorited);
-        Alert.alert('Success', data.message);
-      } else {
-        console.error('Favorite API error:', res.status);
-        Alert.alert('Error', 'Failed to update favorite');
-      }
-    } catch (e) {
+      const data = await toggleFavoriteApi(songId, nowPlaying?.song_title || '', nowPlaying?.artist || '');
+      setIsFavorite(data.favorited);
+      Alert.alert('Success', data.message);
+    } catch (e: any) {
       console.error('Favorite failed:', e);
-      Alert.alert('Error', 'Network error');
+      Alert.alert('Error', e.message || 'Failed to update favorite');
     }
   };
 

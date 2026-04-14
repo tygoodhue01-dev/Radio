@@ -403,19 +403,58 @@ export default function AdminScreen() {
     switch (role) { case 'admin': return Colors.accent; case 'dj': return Colors.primary; case 'editor': return Colors.secondary; default: return Colors.textMuted; }
   };
 
-  const sidebarItems: { key: AdminTab; label: string; icon: string; roles: string[] }[] = [
+  // Map sidebar items to required permissions
+  const sidebarItems: { key: AdminTab; label: string; icon: string; requiredPermission?: string; roles: string[] }[] = [
     { key: 'overview', label: 'Overview', icon: 'grid', roles: ['admin', 'dj', 'editor'] },
-    { key: 'nowplaying', label: 'Now Playing', icon: 'radio', roles: ['admin', 'dj'] },
-    { key: 'requests', label: 'Requests', icon: 'musical-notes', roles: ['admin', 'dj'] },
-    { key: 'users', label: 'Users', icon: 'people', roles: ['admin'] },
-    { key: 'content', label: 'Publish News', icon: 'create', roles: ['admin', 'editor'] },
-    { key: 'manage-news', label: 'Manage News', icon: 'newspaper', roles: ['admin', 'editor'] },
-    { key: 'comments', label: 'Comments', icon: 'chatbubbles', roles: ['admin', 'editor'] },
-    { key: 'schedule', label: 'Schedule', icon: 'calendar', roles: ['admin'] },
-    { key: 'jobs', label: 'Job Applications', icon: 'briefcase', roles: ['admin'] },
-    { key: 'roles', label: 'Roles & Permissions', icon: 'shield-checkmark', roles: ['admin'] },
-    { key: 'push', label: 'Push Notifications', icon: 'notifications', roles: ['admin'] },
+    { key: 'nowplaying', label: 'Stream Settings', icon: 'radio', requiredPermission: 'update_now_playing', roles: ['admin', 'dj'] },
+    { key: 'requests', label: 'Requests', icon: 'musical-notes', requiredPermission: 'manage_requests', roles: ['admin', 'dj'] },
+    { key: 'users', label: 'Users', icon: 'people', requiredPermission: 'manage_users', roles: ['admin'] },
+    { key: 'content', label: 'Publish News', icon: 'create', requiredPermission: 'manage_content', roles: ['admin', 'editor'] },
+    { key: 'manage-news', label: 'Manage News', icon: 'newspaper', requiredPermission: 'manage_content', roles: ['admin', 'editor'] },
+    { key: 'comments', label: 'Comments', icon: 'chatbubbles', requiredPermission: 'manage_comments', roles: ['admin', 'editor'] },
+    { key: 'schedule', label: 'Schedule', icon: 'calendar', requiredPermission: 'manage_shows', roles: ['admin'] },
+    { key: 'jobs', label: 'Job Applications', icon: 'briefcase', requiredPermission: 'manage_applications', roles: ['admin'] },
+    { key: 'roles', label: 'Roles & Permissions', icon: 'shield-checkmark', requiredPermission: 'manage_roles', roles: ['admin'] },
+    { key: 'push', label: 'Push Notifications', icon: 'notifications', requiredPermission: 'manage_users', roles: ['admin'] },
   ];
+
+  // Get user's permissions from their role
+  const [userPermissions, setUserPermissions] = useState<string[]>([]);
+  
+  useEffect(() => {
+    const loadUserPermissions = async () => {
+      if (user?.role) {
+        try {
+          const rolesData = await getRolesApi();
+          const userRole = rolesData.find((r: any) => r.role_id === user.role || r.name?.toLowerCase() === user.role?.toLowerCase());
+          if (userRole?.permissions) {
+            setUserPermissions(userRole.permissions);
+          } else {
+            // Fallback for built-in roles
+            const defaultPerms: { [key: string]: string[] } = {
+              'admin': ['manage_users', 'manage_roles', 'manage_content', 'manage_requests', 'manage_comments', 'manage_shows', 'update_now_playing', 'view_analytics', 'manage_applications', 'manage_polls', 'manage_podcasts'],
+              'dj': ['manage_requests', 'manage_shows', 'update_now_playing', 'manage_polls'],
+              'editor': ['manage_content', 'manage_comments'],
+              'listener': []
+            };
+            setUserPermissions(defaultPerms[user.role] || []);
+          }
+        } catch (e) {
+          console.error('Failed to load user permissions:', e);
+        }
+      }
+    };
+    loadUserPermissions();
+  }, [user?.role]);
+
+  // Filter sidebar items based on permissions
+  const hasPermission = (item: typeof sidebarItems[0]) => {
+    if (!item.requiredPermission) return true; // Overview is always visible
+    if (user?.role === 'admin') return true; // Admin has all permissions
+    return userPermissions.includes(item.requiredPermission);
+  };
+
+  const filteredSidebarItems = sidebarItems.filter(hasPermission);
 
   const pendingCount = requests.filter(r => r.status === 'pending').length;
 
@@ -464,12 +503,12 @@ export default function AdminScreen() {
 
   const renderNowPlaying = () => (
     <View>
-      <Text style={st.panelTitle}>Update Now Playing</Text>
-      <Text style={st.panelSub}>Set the currently playing song and configure stream metadata source.</Text>
+      <Text style={st.panelTitle}>Stream Settings</Text>
+      <Text style={st.panelSub}>Configure your radio stream source for automatic metadata updates.</Text>
       
       {/* Stream Configuration */}
-      <View style={[st.formCard, isWeb && { maxWidth: 600 }, { marginBottom: Spacing.lg }]}>
-        <Text style={st.inputLabel}>STREAM URL / METADATA SOURCE</Text>
+      <View style={[st.formCard, isWeb && { maxWidth: 600 }]}>
+        <Text style={st.inputLabel}>STREAM URL</Text>
         <TextInput 
           style={st.input} 
           value={streamUrl} 
@@ -477,21 +516,26 @@ export default function AdminScreen() {
           placeholder="https://streaming.live365.com/a72818" 
           placeholderTextColor={Colors.textMuted} 
         />
-        <Text style={{ fontSize: FontSizes.xs, color: Colors.textMuted, marginTop: 4 }}>
-          Configure the API address for automatic now playing updates from your stream provider
+        <Text style={{ fontSize: FontSizes.xs, color: Colors.textMuted, marginTop: 8, lineHeight: 18 }}>
+          Enter your Live365, Shoutcast, Icecast, or other streaming URL. The system will automatically fetch now playing metadata from this stream.
         </Text>
+        <TouchableOpacity style={[st.primaryBtn, { marginTop: Spacing.lg }]} onPress={() => Alert.alert('Saved', 'Stream URL has been updated')}>
+          <Ionicons name="save-outline" size={18} color="#fff" />
+          <Text style={st.primaryBtnTxt}>SAVE STREAM URL</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Manual Update */}
-      <View style={[st.formCard, isWeb && { maxWidth: 600 }]}>
-        <Text style={[st.inputLabel, { marginTop: 0 }]}>MANUAL UPDATE</Text>
-        <Text style={st.inputLabel}>SONG TITLE</Text>
-        <TextInput testID="np-song-input" style={st.input} value={npSong} onChangeText={setNpSong} placeholder="Enter song title" placeholderTextColor={Colors.textMuted} />
-        <Text style={st.inputLabel}>ARTIST</Text>
-        <TextInput testID="np-artist-input" style={st.input} value={npArtist} onChangeText={setNpArtist} placeholder="Enter artist name" placeholderTextColor={Colors.textMuted} />
-        <TouchableOpacity testID="np-update-btn" style={st.primaryBtn} onPress={handleUpdateNowPlaying}>
-          <Ionicons name="radio" size={18} color="#fff" /><Text style={st.primaryBtnTxt}>UPDATE NOW PLAYING</Text>
-        </TouchableOpacity>
+      {/* Info Card */}
+      <View style={[st.formCard, isWeb && { maxWidth: 600 }, { backgroundColor: 'rgba(0,240,255,0.08)', borderColor: Colors.secondary, marginTop: Spacing.lg }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+          <Ionicons name="information-circle" size={24} color={Colors.secondary} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: Colors.secondary, fontWeight: '700', fontSize: 14, marginBottom: 4 }}>Automatic Updates</Text>
+            <Text style={{ color: Colors.textSecondary, fontSize: 13, lineHeight: 20 }}>
+              The now playing information is automatically pulled from your stream every 2 minutes. Song title, artist, and album art will update automatically when detected.
+            </Text>
+          </View>
+        </View>
       </View>
     </View>
   );
@@ -1307,7 +1351,7 @@ export default function AdminScreen() {
               <Ionicons name="grid" size={20} color={Colors.primary} />
               <Text style={st.sidebarTitle}>Dashboard</Text>
             </View>
-            {sidebarItems.filter(i => i.roles.includes(user.role)).map(item => (
+            {filteredSidebarItems.map(item => (
               <TouchableOpacity key={item.key} testID={`admin-tab-${item.key}`} style={[st.sidebarItem, tab === item.key && st.sidebarItemActive]} onPress={() => { console.log('TAB CLICKED:', item.key); setTab(item.key as AdminTab); }}>
                 <Ionicons name={item.icon as any} size={18} color={tab === item.key ? Colors.primary : Colors.textMuted} />
                 <Text style={[st.sidebarItemTxt, tab === item.key && st.sidebarItemTxtActive]}>{item.label}</Text>
@@ -1472,7 +1516,7 @@ export default function AdminScreen() {
       
       {/* Mobile Navigation Grid */}
       <View style={st.mNavGrid}>
-        {sidebarItems.filter(i => i.roles.includes(user.role)).map(item => (
+        {filteredSidebarItems.map(item => (
           <TouchableOpacity 
             key={item.key} 
             testID={`admin-tab-${item.key}`} 

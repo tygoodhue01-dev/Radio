@@ -124,10 +124,24 @@ export default function AdminScreen() {
   };
 
   const handleDeleteUser = (userId: string, name: string) => {
-    Alert.alert('Delete User', `Are you sure you want to delete ${name}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => { await deleteUserApi(userId); await loadData(); } },
-    ]);
+    if (Platform.OS === 'web') {
+      const confirmDelete = window.confirm(`Are you sure you want to delete ${name}?`);
+      if (confirmDelete) {
+        deleteUserApi(userId).then(() => loadData()).catch(e => alert(e.message || 'Failed to delete user'));
+      }
+    } else {
+      Alert.alert('Delete User', `Are you sure you want to delete ${name}?`, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: async () => { 
+          try {
+            await deleteUserApi(userId); 
+            await loadData(); 
+          } catch (e: any) {
+            Alert.alert('Error', e.message || 'Failed to delete user');
+          }
+        } },
+      ]);
+    }
   };
 
   const handleRequestAction = async (requestId: string, status: string) => { await updateRequestStatusApi(requestId, status); await loadData(); };

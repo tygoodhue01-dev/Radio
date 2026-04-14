@@ -13,12 +13,13 @@ import {
   updateNowPlayingApi, deleteUserApi, getNewsApi, updateNewsApi, deleteNewsApi,
   getPendingCommentsApi, approveCommentApi, deleteCommentApi, deleteRequestApi,
   getScheduleApi, createScheduleSlotApi, updateScheduleSlotApi, deleteScheduleSlotApi,
-  getJobApplicationsApi, updateJobApplicationStatusApi, deleteJobApplicationApi, sendEmailToApplicantApi
+  getJobApplicationsApi, updateJobApplicationStatusApi, deleteJobApplicationApi, sendEmailToApplicantApi,
+  getRolesApi, getPermissionsApi, createRoleApi, updateRoleApi, deleteRoleApi
 } from '@/src/services/api';
 import { Colors, Spacing, FontSizes, BorderRadius } from '@/src/theme';
 import { WebNavBar, WebFooter } from '@/src/components/WebShell';
 
-type AdminTab = 'overview' | 'users' | 'requests' | 'content' | 'nowplaying' | 'manage-news' | 'comments' | 'schedule' | 'jobs';
+type AdminTab = 'overview' | 'users' | 'requests' | 'content' | 'nowplaying' | 'manage-news' | 'comments' | 'schedule' | 'jobs' | 'roles';
 
 export default function AdminScreen() {
   const { user } = useAuth();
@@ -33,6 +34,8 @@ export default function AdminScreen() {
   const [pendingComments, setPendingComments] = useState<any[]>([]);
   const [scheduleSlots, setScheduleSlots] = useState<any[]>([]);
   const [jobApplications, setJobApplications] = useState<any[]>([]);
+  const [roles, setRoles] = useState<any[]>([]);
+  const [permissions, setPermissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   
@@ -78,6 +81,12 @@ export default function AdminScreen() {
         console.log('Admin: User role is:', user?.role, '- NOT loading comments');
       }
       
+      // Only admins can manage roles
+      if (user?.role === 'admin') {
+        promises.push(getRolesApi());
+        promises.push(getPermissionsApi());
+      }
+      
       console.log('Admin: Fetching', promises.length, 'promises...');
       const results = await Promise.all(promises);
       
@@ -88,8 +97,6 @@ export default function AdminScreen() {
         news: results[3]?.length,
         schedule: results[4]?.length,
         jobs: results[5]?.length,
-        commentsIndex6: results[6],
-        commentsLength: results[6]?.length
       });
       
       setStats(results[0]); 
@@ -99,11 +106,17 @@ export default function AdminScreen() {
       setScheduleSlots(results[4]);
       setJobApplications(results[5]);
       
-      if (results[6]) {
-        console.log('Admin: Setting pending comments to:', results[6]);
-        setPendingComments(results[6]);
-      } else {
-        console.log('Admin: No comments data in results[6]');
+      let idx = 6;
+      if (user?.role === 'admin' || user?.role === 'editor') {
+        if (results[idx]) {
+          setPendingComments(results[idx]);
+        }
+        idx++;
+      }
+      
+      if (user?.role === 'admin') {
+        if (results[idx]) setRoles(results[idx]);
+        if (results[idx + 1]) setPermissions(results[idx + 1]);
       }
     } catch (e) { 
       console.error('Admin: Load data error:', e); 
@@ -392,6 +405,7 @@ export default function AdminScreen() {
     { key: 'comments', label: 'Comments', icon: 'chatbubbles', roles: ['admin', 'editor'] },
     { key: 'schedule', label: 'Schedule', icon: 'calendar', roles: ['admin'] },
     { key: 'jobs', label: 'Job Applications', icon: 'briefcase', roles: ['admin'] },
+    { key: 'roles', label: 'Roles & Permissions', icon: 'shield-checkmark', roles: ['admin'] },
   ];
 
   const pendingCount = requests.filter(r => r.status === 'pending').length;
@@ -810,6 +824,299 @@ export default function AdminScreen() {
     </View>
   );
 
+  // ============ ROLES & PERMISSIONS PANEL ============
+  const [editingRole, setEditingRole] = useState<any>(null);
+  const [editRoleModal, setEditRoleModal] = useState(false);
+  const [newRoleName, setNewRoleName] = useState('');
+  const [newRoleDisplayName, setNewRoleDisplayName] = useState('');
+  const [newRoleColor, setNewRoleColor] = useState('#00f0ff');
+  const [newRolePermissions, setNewRolePermissions] = useState<string[]>([]);
+  const [showCreateRole, setShowCreateRole] = useState(false);
+
+  const togglePermission = (permKey: string, isEdit = false) => {
+    if (isEdit && editingRole) {
+      const perms = editingRole.permissions || [];
+      if (perms.includes(permKey)) {
+        setEditingRole({ ...editingRole, permissions: perms.filter((p: string) => p !== permKey) });
+      } else {
+        setEditingRole({ ...editingRole, permissions: [...perms, permKey] });
+      }
+    } else {
+      if (newRolePermissions.includes(permKey)) {
+        setNewRolePermissions(newRolePermissions.filter(p => p !== permKey));
+      } else {
+        setNewRolePermissions([...newRolePermissions, permKey]);
+      }
+    }
+  };
+
+  const handleCreateRole = async () => {
+    if (!newRoleName || !newRoleDisplayName) {
+      Platform.OS === 'web' ? alert('Please fill in role name and display name') : Alert.alert('Error', 'Please fill in role name and display name');
+      return;
+    }
+    try {
+      await createRoleApi({
+        name: newRoleName,
+        display_name: newRoleDisplayName,
+        color: newRoleColor,
+        permissions: newRolePermissions
+      });
+      setShowCreateRole(false);
+      setNewRoleName('');
+      setNewRoleDisplayName('');
+      setNewRoleColor('#00f0ff');
+      setNewRolePermissions([]);
+      await loadData();
+      Platform.OS === 'web' ? alert('Role created successfully') : Alert.alert('Success', 'Role created successfully');
+    } catch (e: any) {
+      Platform.OS === 'web' ? alert(e.message) : Alert.alert('Error', e.message);
+    }
+  };
+
+  const handleUpdateRole = async () => {
+    if (!editingRole) return;
+    try {
+      await updateRoleApi(editingRole.role_id, {
+        display_name: editingRole.display_name,
+        color: editingRole.color,
+        permissions: editingRole.permissions
+      });
+      setEditRoleModal(false);
+      setEditingRole(null);
+      await loadData();
+      Platform.OS === 'web' ? alert('Role updated successfully') : Alert.alert('Success', 'Role updated successfully');
+    } catch (e: any) {
+      Platform.OS === 'web' ? alert(e.message) : Alert.alert('Error', e.message);
+    }
+  };
+
+  const handleDeleteRole = (roleId: string, roleName: string) => {
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Are you sure you want to delete the role "${roleName}"?`)) {
+        deleteRoleApi(roleId).then(() => loadData()).catch(e => alert(e.message));
+      }
+    } else {
+      Alert.alert('Delete Role', `Are you sure you want to delete "${roleName}"?`, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => deleteRoleApi(roleId).then(() => loadData()).catch(e => Alert.alert('Error', e.message)) }
+      ]);
+    }
+  };
+
+  const roleColors = ['#ff007f', '#00f0ff', '#ffff00', '#22c55e', '#f97316', '#8b5cf6', '#ec4899', '#06b6d4'];
+
+  const renderRoles = () => (
+    <View>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <View>
+          <Text style={st.panelTitle}>Roles & Permissions</Text>
+          <Text style={st.panelSub}>Manage user roles and what they can do</Text>
+        </View>
+        <TouchableOpacity 
+          style={[st.primaryBtn, { marginTop: 0, paddingHorizontal: 16, paddingVertical: 10 }]} 
+          onPress={() => setShowCreateRole(!showCreateRole)}
+        >
+          <Ionicons name={showCreateRole ? 'close' : 'add'} size={18} color="#fff" />
+          <Text style={st.primaryBtnTxt}>{showCreateRole ? 'CANCEL' : 'NEW ROLE'}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Create New Role Form */}
+      {showCreateRole && (
+        <View style={[st.formCard, { marginBottom: 24 }]}>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: Colors.primary, marginBottom: 16 }}>Create New Role</Text>
+          
+          <Text style={st.inputLabel}>ROLE ID (lowercase, no spaces)</Text>
+          <TextInput
+            style={st.input}
+            value={newRoleName}
+            onChangeText={setNewRoleName}
+            placeholder="e.g., moderator"
+            placeholderTextColor={Colors.textMuted}
+            autoCapitalize="none"
+          />
+          
+          <Text style={st.inputLabel}>DISPLAY NAME</Text>
+          <TextInput
+            style={st.input}
+            value={newRoleDisplayName}
+            onChangeText={setNewRoleDisplayName}
+            placeholder="e.g., Moderator"
+            placeholderTextColor={Colors.textMuted}
+          />
+          
+          <Text style={st.inputLabel}>COLOR</Text>
+          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+            {roleColors.map(color => (
+              <TouchableOpacity 
+                key={color}
+                style={{
+                  width: 36, height: 36, borderRadius: 18, backgroundColor: color,
+                  borderWidth: newRoleColor === color ? 3 : 0, borderColor: '#fff'
+                }}
+                onPress={() => setNewRoleColor(color)}
+              />
+            ))}
+          </View>
+          
+          <Text style={st.inputLabel}>PERMISSIONS</Text>
+          <View style={{ gap: 8 }}>
+            {permissions.map(perm => (
+              <TouchableOpacity 
+                key={perm.key}
+                style={{
+                  flexDirection: 'row', alignItems: 'center', gap: 12,
+                  backgroundColor: newRolePermissions.includes(perm.key) ? 'rgba(255,0,127,0.15)' : Colors.background,
+                  padding: 12, borderRadius: 10, borderWidth: 1,
+                  borderColor: newRolePermissions.includes(perm.key) ? Colors.primary : Colors.border
+                }}
+                onPress={() => togglePermission(perm.key)}
+              >
+                <Ionicons 
+                  name={newRolePermissions.includes(perm.key) ? 'checkbox' : 'square-outline'} 
+                  size={22} 
+                  color={newRolePermissions.includes(perm.key) ? Colors.primary : Colors.textMuted} 
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#fff', fontWeight: '600', fontSize: 14 }}>{perm.label}</Text>
+                  <Text style={{ color: Colors.textMuted, fontSize: 12 }}>{perm.description}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+          
+          <TouchableOpacity style={st.primaryBtn} onPress={handleCreateRole}>
+            <Ionicons name="checkmark" size={18} color="#fff" />
+            <Text style={st.primaryBtnTxt}>CREATE ROLE</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Existing Roles List */}
+      <View style={{ gap: 12 }}>
+        {roles.map(role => (
+          <View key={role.role_id} style={[st.formCard, { padding: 16 }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: role.color }} />
+                  <Text style={{ fontSize: 18, fontWeight: '800', color: '#fff' }}>{role.display_name}</Text>
+                  {role.is_system && (
+                    <View style={{ backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
+                      <Text style={{ fontSize: 10, color: Colors.textMuted, fontWeight: '600' }}>SYSTEM</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={{ fontSize: 12, color: Colors.textMuted, marginBottom: 12 }}>ID: {role.role_id}</Text>
+                
+                <Text style={{ fontSize: 11, fontWeight: '700', color: Colors.secondary, marginBottom: 8, letterSpacing: 1 }}>PERMISSIONS</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {role.permissions?.length > 0 ? role.permissions.map((p: string) => {
+                    const permInfo = permissions.find(pi => pi.key === p);
+                    return (
+                      <View key={p} style={{ backgroundColor: 'rgba(0,240,255,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+                        <Text style={{ fontSize: 11, color: Colors.secondary, fontWeight: '600' }}>{permInfo?.label || p}</Text>
+                      </View>
+                    );
+                  }) : (
+                    <Text style={{ color: Colors.textMuted, fontSize: 12, fontStyle: 'italic' }}>No permissions</Text>
+                  )}
+                </View>
+              </View>
+              
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity 
+                  style={[st.actionBtn, { backgroundColor: 'rgba(0,240,255,0.15)' }]}
+                  onPress={() => { setEditingRole(role); setEditRoleModal(true); }}
+                >
+                  <Ionicons name="create" size={16} color={Colors.secondary} />
+                </TouchableOpacity>
+                {!role.is_system && (
+                  <TouchableOpacity 
+                    style={[st.deleteBtn, { backgroundColor: 'rgba(239,68,68,0.15)' }]}
+                    onPress={() => handleDeleteRole(role.role_id, role.display_name)}
+                  >
+                    <Ionicons name="trash" size={16} color={Colors.error} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* Edit Role Modal */}
+      <Modal visible={editRoleModal} transparent animationType="fade">
+        <View style={st.modalOverlay}>
+          <View style={[st.modalContent, { maxHeight: '90%' }]}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={st.modalTitle}>Edit Role</Text>
+              {editingRole && (
+                <>
+                  <Text style={st.inputLabel}>DISPLAY NAME</Text>
+                  <TextInput
+                    style={st.input}
+                    value={editingRole.display_name}
+                    onChangeText={(val) => setEditingRole({ ...editingRole, display_name: val })}
+                  />
+                  
+                  <Text style={st.inputLabel}>COLOR</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+                    {roleColors.map(color => (
+                      <TouchableOpacity 
+                        key={color}
+                        style={{
+                          width: 36, height: 36, borderRadius: 18, backgroundColor: color,
+                          borderWidth: editingRole.color === color ? 3 : 0, borderColor: '#fff'
+                        }}
+                        onPress={() => setEditingRole({ ...editingRole, color })}
+                      />
+                    ))}
+                  </View>
+                  
+                  <Text style={st.inputLabel}>PERMISSIONS</Text>
+                  <View style={{ gap: 8, marginBottom: 16 }}>
+                    {permissions.map(perm => (
+                      <TouchableOpacity 
+                        key={perm.key}
+                        style={{
+                          flexDirection: 'row', alignItems: 'center', gap: 12,
+                          backgroundColor: editingRole.permissions?.includes(perm.key) ? 'rgba(255,0,127,0.15)' : Colors.background,
+                          padding: 12, borderRadius: 10, borderWidth: 1,
+                          borderColor: editingRole.permissions?.includes(perm.key) ? Colors.primary : Colors.border
+                        }}
+                        onPress={() => togglePermission(perm.key, true)}
+                      >
+                        <Ionicons 
+                          name={editingRole.permissions?.includes(perm.key) ? 'checkbox' : 'square-outline'} 
+                          size={22} 
+                          color={editingRole.permissions?.includes(perm.key) ? Colors.primary : Colors.textMuted} 
+                        />
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: '#fff', fontWeight: '600', fontSize: 14 }}>{perm.label}</Text>
+                          <Text style={{ color: Colors.textMuted, fontSize: 12 }}>{perm.description}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              )}
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <TouchableOpacity style={[st.primaryBtn, { flex: 1 }]} onPress={handleUpdateRole}>
+                  <Text style={st.primaryBtnTxt}>SAVE CHANGES</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[st.deleteBtn, { flex: 1, paddingVertical: 14, justifyContent: 'center' }]} onPress={() => { setEditRoleModal(false); setEditingRole(null); }}>
+                  <Text style={{ color: Colors.error, fontWeight: '700', textAlign: 'center' }}>CANCEL</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+
   const renderPanel = () => {
     if (loading) return <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 60 }} />;
     switch (tab) {
@@ -822,6 +1129,7 @@ export default function AdminScreen() {
       case 'comments': return renderComments();
       case 'schedule': return renderSchedule();
       case 'jobs': return renderJobApplications();
+      case 'roles': return renderRoles();
     }
   };
 

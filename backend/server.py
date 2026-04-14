@@ -221,6 +221,58 @@ class EmailRequest(BaseModel):
     subject: str
     message: str
 
+class RoleCreate(BaseModel):
+    name: str
+    display_name: str
+    color: str = "#00f0ff"
+    permissions: List[str] = []
+
+class RoleUpdate(BaseModel):
+    display_name: Optional[str] = None
+    color: Optional[str] = None
+    permissions: Optional[List[str]] = None
+
+# Default permissions available in the system
+DEFAULT_PERMISSIONS = [
+    {"key": "manage_users", "label": "Manage Users", "description": "View, edit, and delete users"},
+    {"key": "manage_roles", "label": "Manage Roles", "description": "Create, edit, and delete roles"},
+    {"key": "manage_content", "label": "Manage Content", "description": "Create/edit news, events, contests"},
+    {"key": "manage_requests", "label": "Manage Song Requests", "description": "View and manage song requests"},
+    {"key": "manage_comments", "label": "Manage Comments", "description": "Approve and delete comments"},
+    {"key": "manage_shows", "label": "Manage Shows", "description": "Create and edit shows/schedule"},
+    {"key": "update_now_playing", "label": "Update Now Playing", "description": "Change currently playing song"},
+    {"key": "view_analytics", "label": "View Analytics", "description": "Access analytics dashboard"},
+    {"key": "manage_applications", "label": "Manage Job Applications", "description": "Review job applications"},
+    {"key": "manage_polls", "label": "Manage Polls", "description": "Create and manage polls"},
+    {"key": "manage_podcasts", "label": "Manage Podcasts", "description": "Create and edit podcasts"},
+]
+
+# Default roles with their permissions
+DEFAULT_ROLES = {
+    "admin": {
+        "display_name": "Administrator",
+        "color": "#ff007f",
+        "permissions": ["manage_users", "manage_roles", "manage_content", "manage_requests", 
+                       "manage_comments", "manage_shows", "update_now_playing", "view_analytics",
+                       "manage_applications", "manage_polls", "manage_podcasts"]
+    },
+    "dj": {
+        "display_name": "DJ",
+        "color": "#00f0ff",
+        "permissions": ["manage_requests", "manage_shows", "update_now_playing", "manage_polls"]
+    },
+    "editor": {
+        "display_name": "Editor",
+        "color": "#ffff00",
+        "permissions": ["manage_content", "manage_comments"]
+    },
+    "listener": {
+        "display_name": "Listener",
+        "color": "#888888",
+        "permissions": []
+    }
+}
+
 # App setup
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -939,6 +991,92 @@ async def delete_user(user_id: str, user: dict = Depends(require_roles("admin"))
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
     return {"message": "User deleted"}
+
+# ==================== ROLE MANAGEMENT ====================
+@api_router.get("/admin/roles")
+async def get_all_roles(user: dict = Depends(require_roles("admin"))):
+    """Get all roles with their permissions"""
+    roles = await db.roles.find({}, {"_id": 0}).to_list(100)
+    if not roles:
+        # Initialize default roles if none exist
+        for role_key, role_data in DEFAULT_ROLES.items():
+            role_doc = {
+                "role_id": role_key,
+                "name": role_key,
+                "display_name": role_data["display_name"],
+                "color": role_data["color"],
+                "permissions": role_data["permissions"],
+                "is_system": role_key in ["admin", "listener"],  # Can't delete system roles
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.roles.insert_one(role_doc)
+        roles = await db.roles.find({}, {"_id": 0}).to_list(100)
+    return roles
+
+@api_router.get("/admin/permissions")
+async def get_all_permissions(user: dict = Depends(require_roles("admin"))):
+    """Get all available permissions"""
+    return DEFAULT_PERMISSIONS
+
+@api_router.post("/admin/roles")
+async def create_role(req: RoleCreate, user: dict = Depends(require_roles("admin"))):
+    """Create a new role"""
+    role_id = req.name.lower().replace(" ", "_")
+    existing = await db.roles.find_one({"role_id": role_id})
+    if existing:
+        raise HTTPException(status_code=400, detail="Role already exists")
+    
+    role_doc = {
+        "role_id": role_id,
+        "name": req.name,
+        "display_name": req.display_name,
+        "color": req.color,
+        "permissions": req.permissions,
+        "is_system": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.roles.insert_one(role_doc)
+    role_doc.pop("_id", None)
+    return role_doc
+
+@api_router.put("/admin/roles/{role_id}")
+async def update_role(role_id: str, req: RoleUpdate, user: dict = Depends(require_roles("admin"))):
+    """Update a role's permissions and settings"""
+    role = await db.roles.find_one({"role_id": role_id})
+    if not role:
+        raise HTTPException(status_code=404, detail="Role not found")
+    
+    update_data = {}
+    if req.display_name is not None:
+        update_data["display_name"] = req.display_name
+    if req.color is not None:
+        update_data["color"] = req.color
+    if req.permissions is not None:
+        update_data["permissions"] = req.permissions
+    
+    if update_data:
+        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        await db.roles.update_one({"role_id": role_id}, {"$set": update_data})
+    
+    updated = await db.roles.find_one({"role_id": role_id}, {"_id": 0})
+    return updated
+
+@api_router.delete("/admin/roles/{role_id}")
+async def delete_role(role_id: str, user: dict = Depends(require_roles("admin"))):
+    """Delete a role (cannot delete system roles)"""
+    role = await db.roles.find_one({"role_id": role_id})
+    if not role:
+        raise HTTPException(status_code=404, detail="Role not found")
+    if role.get("is_system"):
+        raise HTTPException(status_code=400, detail="Cannot delete system role")
+    
+    # Check if any users have this role
+    users_with_role = await db.users.count_documents({"role": role_id})
+    if users_with_role > 0:
+        raise HTTPException(status_code=400, detail=f"Cannot delete role - {users_with_role} users have this role")
+    
+    await db.roles.delete_one({"role_id": role_id})
+    return {"message": "Role deleted"}
 
 # ==================== PROFILE ====================
 @api_router.put("/profile")

@@ -467,3 +467,45 @@ export async function sendEmailToApplicantApi(appId: string, emailData: any) {
   if (!res.ok) throw new Error('Failed to send email');
   return res.json();
 }
+
+// ==================== ROLE MANAGEMENT ====================
+export async function getRolesApi() {
+  const res = await authFetch(`${API_BASE}/admin/roles`);
+  if (!res.ok) throw new Error('Failed to fetch roles');
+  return res.json();
+}
+
+export async function getPermissionsApi() {
+  const res = await authFetch(`${API_BASE}/admin/permissions`);
+  if (!res.ok) throw new Error('Failed to fetch permissions');
+  return res.json();
+}
+
+export async function createRoleApi(roleData: { name: string; display_name: string; color: string; permissions: string[] }) {
+  const res = await authFetch(`${API_BASE}/admin/roles`, {
+    method: 'POST',
+    body: JSON.stringify(roleData),
+  });
+  if (!res.ok) throw new Error('Failed to create role');
+  return res.json();
+}
+
+export async function updateRoleApi(roleId: string, roleData: { display_name?: string; color?: string; permissions?: string[] }) {
+  const res = await authFetch(`${API_BASE}/admin/roles/${roleId}`, {
+    method: 'PUT',
+    body: JSON.stringify(roleData),
+  });
+  if (!res.ok) throw new Error('Failed to update role');
+  return res.json();
+}
+
+export async function deleteRoleApi(roleId: string) {
+  const res = await authFetch(`${API_BASE}/admin/roles/${roleId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.detail || 'Failed to delete role');
+  }
+  return res.json();
+}

@@ -1,13 +1,34 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
-// Get backend URL from environment - works for both Expo and web builds
-// Priority: env variable > expo config > hardcoded fallback for production
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 
-                    Constants.expoConfig?.extra?.backendUrl || 
-                    'https://radio-production-3743.up.railway.app';
+// Hardcoded production URL - this is the Railway backend
+const PRODUCTION_BACKEND = 'https://radio-production-3743.up.railway.app';
 
-console.log('🔗 API Backend URL:', BACKEND_URL);
+// Get backend URL - for web builds, environment variables might not work properly
+// so we use the hardcoded production URL as the primary fallback
+const getBackendUrl = () => {
+  // Try environment variable first
+  if (process.env.EXPO_PUBLIC_BACKEND_URL) {
+    return process.env.EXPO_PUBLIC_BACKEND_URL;
+  }
+  
+  // Try Expo config
+  if (Constants.expoConfig?.extra?.backendUrl) {
+    return Constants.expoConfig.extra.backendUrl;
+  }
+  
+  // For web platform in production, always use the production backend
+  if (Platform.OS === 'web') {
+    return PRODUCTION_BACKEND;
+  }
+  
+  // Fallback
+  return PRODUCTION_BACKEND;
+};
+
+const BACKEND_URL = getBackendUrl();
+console.log('🔗 API Backend URL:', BACKEND_URL, 'Platform:', Platform.OS);
 const API_BASE = `${BACKEND_URL}/api`;
 
 async function getToken(): Promise<string | null> {

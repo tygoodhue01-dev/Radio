@@ -14,12 +14,13 @@ import {
   getPendingCommentsApi, approveCommentApi, deleteCommentApi, deleteRequestApi,
   getScheduleApi, createScheduleSlotApi, updateScheduleSlotApi, deleteScheduleSlotApi,
   getJobApplicationsApi, updateJobApplicationStatusApi, deleteJobApplicationApi, sendEmailToApplicantApi,
-  getRolesApi, getPermissionsApi, createRoleApi, updateRoleApi, deleteRoleApi
+  getRolesApi, getPermissionsApi, createRoleApi, updateRoleApi, deleteRoleApi,
+  getPushTokensApi, sendPushNotificationApi, getPushHistoryApi
 } from '@/src/services/api';
 import { Colors, Spacing, FontSizes, BorderRadius } from '@/src/theme';
 import { WebNavBar, WebFooter } from '@/src/components/WebShell';
 
-type AdminTab = 'overview' | 'users' | 'requests' | 'content' | 'nowplaying' | 'manage-news' | 'comments' | 'schedule' | 'jobs' | 'roles';
+type AdminTab = 'overview' | 'users' | 'requests' | 'content' | 'nowplaying' | 'manage-news' | 'comments' | 'schedule' | 'jobs' | 'roles' | 'push';
 
 export default function AdminScreen() {
   const { user } = useAuth();
@@ -60,6 +61,13 @@ export default function AdminScreen() {
   const [emailingApplicant, setEmailingApplicant] = useState<any>(null);
   const [emailSubject, setEmailSubject] = useState('');
   const [emailMessage, setEmailMessage] = useState('');
+  
+  // Push notifications
+  const [pushTokens, setPushTokens] = useState<any>({ total: 0, tokens: [] });
+  const [pushHistory, setPushHistory] = useState<any[]>([]);
+  const [pushTitle, setPushTitle] = useState('');
+  const [pushBody, setPushBody] = useState('');
+  const [sendingPush, setSendingPush] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -406,6 +414,7 @@ export default function AdminScreen() {
     { key: 'schedule', label: 'Schedule', icon: 'calendar', roles: ['admin'] },
     { key: 'jobs', label: 'Job Applications', icon: 'briefcase', roles: ['admin'] },
     { key: 'roles', label: 'Roles & Permissions', icon: 'shield-checkmark', roles: ['admin'] },
+    { key: 'push', label: 'Push Notifications', icon: 'notifications', roles: ['admin'] },
   ];
 
   const pendingCount = requests.filter(r => r.status === 'pending').length;
@@ -1121,6 +1130,129 @@ export default function AdminScreen() {
     </View>
   );
 
+  // ============ PUSH NOTIFICATIONS PANEL ============
+  const loadPushData = async () => {
+    try {
+      const [tokensData, historyData] = await Promise.all([
+        getPushTokensApi(),
+        getPushHistoryApi()
+      ]);
+      setPushTokens(tokensData);
+      setPushHistory(historyData);
+    } catch (e) {
+      console.error('Failed to load push data:', e);
+    }
+  };
+
+  useEffect(() => {
+    if (tab === 'push') {
+      loadPushData();
+    }
+  }, [tab]);
+
+  const handleSendPush = async () => {
+    if (!pushTitle || !pushBody) {
+      Platform.OS === 'web' ? alert('Please enter both title and message') : Alert.alert('Error', 'Please enter both title and message');
+      return;
+    }
+    setSendingPush(true);
+    try {
+      const result = await sendPushNotificationApi(pushTitle, pushBody);
+      setPushTitle('');
+      setPushBody('');
+      await loadPushData();
+      const msg = `Notification sent!\n\nTargeted: ${result.tokens_targeted} devices\nSuccess: ${result.success}\nFailed: ${result.failed}`;
+      Platform.OS === 'web' ? alert(msg) : Alert.alert('Success', msg);
+    } catch (e: any) {
+      Platform.OS === 'web' ? alert(e.message) : Alert.alert('Error', e.message);
+    }
+    setSendingPush(false);
+  };
+
+  const renderPush = () => (
+    <View>
+      <Text style={st.panelTitle}>Push Notifications</Text>
+      <Text style={st.panelSub}>Send push notifications to all app users</Text>
+
+      {/* Stats */}
+      <View style={{ flexDirection: 'row', gap: 12, marginVertical: 20 }}>
+        <View style={[st.statCard, { flex: 1 }]}>
+          <Text style={st.statVal}>{pushTokens.total}</Text>
+          <Text style={st.statLabel}>REGISTERED DEVICES</Text>
+        </View>
+        <View style={[st.statCard, { flex: 1 }]}>
+          <Text style={st.statVal}>{pushHistory.length}</Text>
+          <Text style={st.statLabel}>NOTIFICATIONS SENT</Text>
+        </View>
+      </View>
+
+      {/* Send Notification Form */}
+      <View style={st.formCard}>
+        <Text style={{ fontSize: 16, fontWeight: '700', color: Colors.primary, marginBottom: 16 }}>
+          <Ionicons name="send" size={16} /> Send New Notification
+        </Text>
+
+        <Text style={st.inputLabel}>TITLE</Text>
+        <TextInput
+          style={st.input}
+          value={pushTitle}
+          onChangeText={setPushTitle}
+          placeholder="e.g., New Contest Alert!"
+          placeholderTextColor={Colors.textMuted}
+        />
+
+        <Text style={st.inputLabel}>MESSAGE</Text>
+        <TextInput
+          style={[st.input, { height: 100, textAlignVertical: 'top' }]}
+          value={pushBody}
+          onChangeText={setPushBody}
+          placeholder="Enter your notification message..."
+          placeholderTextColor={Colors.textMuted}
+          multiline
+        />
+
+        <TouchableOpacity 
+          style={[st.primaryBtn, sendingPush && { opacity: 0.6 }]} 
+          onPress={handleSendPush}
+          disabled={sendingPush}
+        >
+          <Ionicons name={sendingPush ? "hourglass" : "paper-plane"} size={18} color="#fff" />
+          <Text style={st.primaryBtnTxt}>{sendingPush ? 'SENDING...' : 'SEND TO ALL DEVICES'}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Recent Notifications */}
+      <Text style={[st.panelTitle, { marginTop: 30 }]}>Recent Notifications</Text>
+      <Text style={st.panelSub}>History of sent notifications</Text>
+
+      {pushHistory.length === 0 ? (
+        <View style={[st.formCard, { alignItems: 'center', paddingVertical: 40 }]}>
+          <Ionicons name="notifications-off-outline" size={48} color={Colors.textMuted} />
+          <Text style={{ color: Colors.textMuted, marginTop: 12 }}>No notifications sent yet</Text>
+        </View>
+      ) : (
+        <View style={{ gap: 12, marginTop: 16 }}>
+          {pushHistory.map((notif, idx) => (
+            <View key={notif.notification_id || idx} style={st.formCard}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff', flex: 1 }}>{notif.title}</Text>
+                <View style={{ backgroundColor: 'rgba(0,240,255,0.15)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
+                  <Text style={{ fontSize: 10, color: Colors.secondary }}>
+                    {notif.result?.success || 0} / {notif.result?.success + notif.result?.failed || 0}
+                  </Text>
+                </View>
+              </View>
+              <Text style={{ color: Colors.textSecondary, fontSize: 14, marginBottom: 8 }}>{notif.body}</Text>
+              <Text style={{ color: Colors.textMuted, fontSize: 11 }}>
+                {new Date(notif.sent_at).toLocaleString()}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+
   const renderPanel = () => {
     if (loading) return <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 60 }} />;
     switch (tab) {
@@ -1134,6 +1266,7 @@ export default function AdminScreen() {
       case 'schedule': return renderSchedule();
       case 'jobs': return renderJobApplications();
       case 'roles': return renderRoles();
+      case 'push': return renderPush();
     }
   };
 

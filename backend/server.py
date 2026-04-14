@@ -273,6 +273,17 @@ DEFAULT_ROLES = {
     }
 }
 
+# Push Notification Models
+class PushTokenRegister(BaseModel):
+    token: str
+    device_name: Optional[str] = None
+
+class PushNotificationSend(BaseModel):
+    title: str
+    body: str
+    data: Optional[dict] = None
+    target: str = "all"  # "all" or specific user_id
+
 # App setup
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -1077,6 +1088,113 @@ async def delete_role(role_id: str, user: dict = Depends(require_roles("admin"))
     
     await db.roles.delete_one({"role_id": role_id})
     return {"message": "Role deleted"}
+
+# ==================== PUSH NOTIFICATIONS ====================
+import httpx
+
+async def send_expo_push_notification(tokens: List[str], title: str, body: str, data: dict = None):
+    """Send push notification via Expo Push Service"""
+    messages = []
+    for token in tokens:
+        if not token.startswith('ExponentPushToken'):
+            continue
+        message = {
+            "to": token,
+            "sound": "default",
+            "title": title,
+            "body": body,
+        }
+        if data:
+            message["data"] = data
+        messages.append(message)
+    
+    if not messages:
+        return {"success": 0, "failed": 0}
+    
+    # Send to Expo Push Service
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                "https://exp.host/--/api/v2/push/send",
+                json=messages,
+                headers={"Content-Type": "application/json"}
+            )
+            result = response.json()
+            success = len([r for r in result.get("data", []) if r.get("status") == "ok"])
+            return {"success": success, "failed": len(messages) - success}
+        except Exception as e:
+            logger.error(f"Push notification error: {e}")
+            return {"success": 0, "failed": len(messages), "error": str(e)}
+
+@api_router.post("/push/register")
+async def register_push_token(req: PushTokenRegister, user: dict = Depends(get_current_user)):
+    """Register a device's push token"""
+    # Store or update the push token for this user
+    await db.push_tokens.update_one(
+        {"user_id": user["user_id"], "token": req.token},
+        {"$set": {
+            "user_id": user["user_id"],
+            "token": req.token,
+            "device_name": req.device_name or "Unknown Device",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    return {"message": "Push token registered successfully"}
+
+@api_router.delete("/push/unregister")
+async def unregister_push_token(token: str, user: dict = Depends(get_current_user)):
+    """Unregister a push token"""
+    await db.push_tokens.delete_one({"user_id": user["user_id"], "token": token})
+    return {"message": "Push token unregistered"}
+
+@api_router.get("/admin/push/tokens")
+async def get_push_tokens(user: dict = Depends(require_roles("admin"))):
+    """Get all registered push tokens (admin only)"""
+    tokens = await db.push_tokens.find({}, {"_id": 0}).to_list(1000)
+    return {"total": len(tokens), "tokens": tokens}
+
+@api_router.post("/admin/push/send")
+async def send_push_notification(req: PushNotificationSend, user: dict = Depends(require_roles("admin"))):
+    """Send push notification to users (admin only)"""
+    if req.target == "all":
+        # Get all tokens
+        tokens_docs = await db.push_tokens.find({}, {"token": 1}).to_list(10000)
+        tokens = [t["token"] for t in tokens_docs]
+    else:
+        # Get tokens for specific user
+        tokens_docs = await db.push_tokens.find({"user_id": req.target}, {"token": 1}).to_list(100)
+        tokens = [t["token"] for t in tokens_docs]
+    
+    if not tokens:
+        raise HTTPException(status_code=400, detail="No push tokens found for target")
+    
+    # Send notifications
+    result = await send_expo_push_notification(tokens, req.title, req.body, req.data)
+    
+    # Log the notification
+    await db.push_history.insert_one({
+        "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+        "title": req.title,
+        "body": req.body,
+        "data": req.data,
+        "target": req.target,
+        "sent_by": user["user_id"],
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+        "result": result
+    })
+    
+    return {
+        "message": "Notification sent",
+        "tokens_targeted": len(tokens),
+        **result
+    }
+
+@api_router.get("/admin/push/history")
+async def get_push_history(limit: int = 50, user: dict = Depends(require_roles("admin"))):
+    """Get push notification history (admin only)"""
+    history = await db.push_history.find({}, {"_id": 0}).sort("sent_at", -1).to_list(limit)
+    return history
 
 # ==================== PROFILE ====================
 @api_router.put("/profile")

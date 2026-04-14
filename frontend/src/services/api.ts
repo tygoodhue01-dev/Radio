@@ -509,3 +509,37 @@ export async function deleteRoleApi(roleId: string) {
   }
   return res.json();
 }
+
+// ==================== PUSH NOTIFICATIONS ====================
+export async function registerPushTokenApi(token: string, deviceName?: string) {
+  const res = await authFetch(`${API_BASE}/push/register`, {
+    method: 'POST',
+    body: JSON.stringify({ token, device_name: deviceName }),
+  });
+  if (!res.ok) throw new Error('Failed to register push token');
+  return res.json();
+}
+
+export async function getPushTokensApi() {
+  const res = await authFetch(`${API_BASE}/admin/push/tokens`);
+  if (!res.ok) throw new Error('Failed to fetch push tokens');
+  return res.json();
+}
+
+export async function sendPushNotificationApi(title: string, body: string, target: string = 'all', data?: any) {
+  const res = await authFetch(`${API_BASE}/admin/push/send`, {
+    method: 'POST',
+    body: JSON.stringify({ title, body, target, data }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || 'Failed to send notification');
+  }
+  return res.json();
+}
+
+export async function getPushHistoryApi() {
+  const res = await authFetch(`${API_BASE}/admin/push/history`);
+  if (!res.ok) throw new Error('Failed to fetch push history');
+  return res.json();
+}

@@ -467,16 +467,3 @@ export async function sendEmailToApplicantApi(appId: string, emailData: any) {
   if (!res.ok) throw new Error('Failed to send email');
   return res.json();
 }
-
-// User Management
-export async function updateUserApi(userId: string, updates: any, token: string) {
-  const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
-    method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(updates)
-  });
-  return res.json();
-}

@@ -4,6 +4,6 @@
   "installCommand": "cd frontend && yarn install",
   "framework": null,
   "env": {
-    "EXPO_PUBLIC_BACKEND_URL": "https://project-init-27.preview.emergentagent.com"
+    "EXPO_PUBLIC_BACKEND_URL": "https://radio-production-3743.up.railway.app"
   }
 }

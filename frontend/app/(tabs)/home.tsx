@@ -14,6 +14,7 @@ import {
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '@/src/theme';
 import AdvancedPlayer from '@/src/components/AdvancedPlayer';
 import WeatherWidget from '@/src/components/WeatherWidget';
+import ProfileDrawer from '@/src/components/ProfileDrawer';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function HomeScreen() {
@@ -34,6 +35,7 @@ export default function HomeScreen() {
   const [showAdvancedPlayer, setShowAdvancedPlayer] = useState(false);
   const [songRating, setSongRating] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [showProfileDrawer, setShowProfileDrawer] = useState(false);
 
   const shareSong = async () => {
     try {
@@ -92,7 +94,7 @@ export default function HomeScreen() {
   useEffect(() => { loadData(); const i = setInterval(loadData, 120000); return () => clearInterval(i); }, [loadData]); // Refresh every 2 minutes
   const onRefresh = async () => { setRefreshing(true); await loadData(); setRefreshing(false); };
 
-  if (isWeb) return <WebLayout {...{ user, router, nowPlaying, news, shows, events, contests, podcasts, djs, isPlaying, setIsPlaying, onRefresh, refreshing, toggleFavorite, shareSong, isFavorite }} />;
+  if (isWeb) return <WebLayout {...{ user, router, nowPlaying, news, shows, events, contests, podcasts, djs, isPlaying, setIsPlaying, onRefresh, refreshing, toggleFavorite, shareSong, isFavorite, showProfileDrawer, setShowProfileDrawer }} />;
 
   // ============ MOBILE LAYOUT ============
   return (
@@ -291,8 +293,9 @@ export default function HomeScreen() {
 }
 
 // ============ FULL WEB LAYOUT (iHeartRadio style) ============
-function WebLayout({ user, router, nowPlaying, news, shows, events, contests, podcasts, djs, isPlaying, setIsPlaying, onRefresh, refreshing, toggleFavorite, shareSong, isFavorite }: any) {
+function WebLayout({ user, router, nowPlaying, news, shows, events, contests, podcasts, djs, isPlaying, setIsPlaying, onRefresh, refreshing, toggleFavorite, shareSong, isFavorite, showProfileDrawer, setShowProfileDrawer }: any) {
   return (
+    <>
     <ScrollView style={s.wPage} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}>
       {/* ===== TOP NAV BAR ===== */}
       <View style={s.wNav}>
@@ -311,9 +314,10 @@ function WebLayout({ user, router, nowPlaying, news, shows, events, contests, po
                 <Ionicons name="person" size={16} color="#fff"/><Text style={s.wLoginTxt}>SIGN IN</Text>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity onPress={()=>router.push('/(tabs)/profile')} style={s.wUserBtn}>
+              <TouchableOpacity onPress={() => setShowProfileDrawer(true)} style={s.wUserBtn}>
                 <View style={s.wAvatar}><Text style={s.wAvatarTxt}>{user.name?.charAt(0)}</Text></View>
                 <Text style={s.wUserName}>{user.name}</Text>
+                <Ionicons name="chevron-down" size={14} color={Colors.textMuted} />
               </TouchableOpacity>
             )}
           </View>
@@ -481,6 +485,10 @@ function WebLayout({ user, router, nowPlaying, news, shows, events, contests, po
         </View>
       </View>
     </ScrollView>
+    
+    {/* Profile Drawer */}
+    <ProfileDrawer visible={showProfileDrawer} onClose={() => setShowProfileDrawer(false)} />
+    </>
   );
 }
 

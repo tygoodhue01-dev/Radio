@@ -835,18 +835,22 @@ export default function AdminScreen() {
 
   const togglePermission = (permKey: string, isEdit = false) => {
     if (isEdit && editingRole) {
-      const perms = editingRole.permissions || [];
-      if (perms.includes(permKey)) {
-        setEditingRole({ ...editingRole, permissions: perms.filter((p: string) => p !== permKey) });
+      const currentPerms = [...(editingRole.permissions || [])];
+      const index = currentPerms.indexOf(permKey);
+      if (index > -1) {
+        currentPerms.splice(index, 1);
       } else {
-        setEditingRole({ ...editingRole, permissions: [...perms, permKey] });
+        currentPerms.push(permKey);
       }
+      setEditingRole({ ...editingRole, permissions: currentPerms });
     } else {
-      if (newRolePermissions.includes(permKey)) {
-        setNewRolePermissions(newRolePermissions.filter(p => p !== permKey));
-      } else {
-        setNewRolePermissions([...newRolePermissions, permKey]);
-      }
+      setNewRolePermissions(prev => {
+        if (prev.includes(permKey)) {
+          return prev.filter(p => p !== permKey);
+        } else {
+          return [...prev, permKey];
+        }
+      });
     }
   };
 

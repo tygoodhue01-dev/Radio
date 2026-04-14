@@ -51,6 +51,13 @@ export default function MoreScreen() {
       description: 'Win prizes',
       color: Colors.accent,
     },
+    {
+      title: 'Careers',
+      icon: 'briefcase' as const,
+      route: '/careers',
+      description: 'Join The Beat 515 team',
+      color: Colors.primary,
+    },
   ];
 
   return (

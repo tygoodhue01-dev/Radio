@@ -165,6 +165,11 @@ export async function getStreamConfigApi() {
   if (!res.ok) return { stream_url: '', station_name: 'The Beat 515', tagline: 'Proud. Loud. Local.' };
   return res.json();
 }
+export async function updateStreamConfigApi(data) {
+  const res = await authFetch(`${API_BASE}/stream-config`, { method: 'PUT', body: JSON.stringify(data) });
+  if (!res.ok) throw new Error('Failed to update stream config');
+  return res.json();
+}
 
 // Admin
 export async function getAdminUsersApi() {

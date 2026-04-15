@@ -1364,13 +1364,15 @@ def fetch_icecast_metadata(stream_url: str) -> dict:
         return None
 
 async def update_now_playing_from_stream():
-    """Background task to update now playing from Live365 stream."""
-    # Try multiple stream URLs
-    stream_urls = [
-        "http://streaming.live365.com/a72818",
-        "https://streaming.live365.com/a72818",
-        "http://ingest.live365.com:8000/a72818_live",
-    ]
+    """Background task to update now playing from configured stream."""
+    # Get stream URL from database config
+    config = await db.stream_config.find_one({"active": True}, {"_id": 0})
+    base_url = config.get("stream_url", "https://das-edge62-live365-dal03.cdnstream.com/a55796") if config else "https://das-edge62-live365-dal03.cdnstream.com/a55796"
+    
+    stream_urls = [base_url]
+    # Also try http variant if https
+    if base_url.startswith("https://"):
+        stream_urls.append(base_url.replace("https://", "http://"))
     
     metadata = None
     for stream_url in stream_urls:
@@ -1425,15 +1427,38 @@ async def update_now_playing_from_stream():
         logger.warning("Could not fetch metadata from any stream URL - metadata may not be available")
 
 # ==================== STREAM CONFIG ====================
+class StreamConfigUpdate(BaseModel):
+    stream_url: Optional[str] = None
+    station_name: Optional[str] = None
+    tagline: Optional[str] = None
+
 @api_router.get("/stream-config")
 async def get_stream_config():
     config = await db.stream_config.find_one({"active": True}, {"_id": 0})
     if not config:
         return {
-            "stream_url": "https://streaming.live365.com/a72818",
+            "stream_url": "https://das-edge62-live365-dal03.cdnstream.com/a55796",
             "station_name": "The Beat 515",
             "tagline": "Proud. Loud. Local."
         }
+    return config
+
+@api_router.put("/stream-config")
+async def update_stream_config(req: StreamConfigUpdate, user: dict = Depends(require_roles("admin", "dj"))):
+    """Update stream configuration (URL, station name, tagline)."""
+    update_data = {}
+    if req.stream_url is not None:
+        update_data["stream_url"] = req.stream_url
+    if req.station_name is not None:
+        update_data["station_name"] = req.station_name
+    if req.tagline is not None:
+        update_data["tagline"] = req.tagline
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.stream_config.update_one({"active": True}, {"$set": update_data}, upsert=True)
+    config = await db.stream_config.find_one({"active": True}, {"_id": 0})
+    logger.info(f"Stream config updated by {user['name']}: {update_data}")
     return config
 
 @api_router.post("/stream/update-metadata")
@@ -1926,17 +1951,19 @@ async def startup():
     sc = await db.stream_config.find_one({"active": True})
     if not sc:
         await db.stream_config.insert_one({
-            "stream_url": "https://streaming.live365.com/a72818",
+            "stream_url": "https://das-edge62-live365-dal03.cdnstream.com/a55796",
             "station_name": "The Beat 515",
             "tagline": "Proud. Loud. Local.",
             "active": True
         })
     else:
-        # Update stream URL if it's still the old one
-        await db.stream_config.update_one(
-            {"active": True},
-            {"$set": {"stream_url": "https://streaming.live365.com/a72818"}}
-        )
+        # Update stream URL to new CDN URL
+        current_url = sc.get("stream_url", "")
+        if "a72818" in current_url or "live365.com/a72818" in current_url:
+            await db.stream_config.update_one(
+                {"active": True},
+                {"$set": {"stream_url": "https://das-edge62-live365-dal03.cdnstream.com/a55796"}}
+            )
     
     # Seed rewards catalog
     reward_count = await db.rewards.count_documents({})

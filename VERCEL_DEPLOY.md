@@ -26,7 +26,7 @@
    Click "Environment Variables" and add:
    ```
    Name: EXPO_PUBLIC_BACKEND_URL
-   Value: https://project-init-27.preview.emergentagent.com
+   Value: https://build-hub-401.preview.emergentagent.com
    ```
 
 5. **Deploy:**

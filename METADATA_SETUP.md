@@ -10,7 +10,7 @@ There are **3 ways** to update the currently playing song on your website:
 **Best for:** Quick manual updates when needed
 
 ### How to use:
-1. Go to: https://opener-2.preview.emergentagent.com/admin
+1. Go to: https://build-hub-401.preview.emergentagent.com/admin
 2. Login with DJ or Admin credentials
 3. Click "Now Playing" tab
 4. Enter: Song Title, Artist, Album
@@ -27,7 +27,7 @@ There are **3 ways** to update the currently playing song on your website:
 
 ### Endpoint:
 ```
-POST https://opener-2.preview.emergentagent.com/api/stream/update-metadata
+POST https://build-hub-401.preview.emergentagent.com/api/stream/update-metadata
 ```
 
 ### Parameters:
@@ -39,14 +39,14 @@ POST https://opener-2.preview.emergentagent.com/api/stream/update-metadata
 
 **cURL:**
 ```bash
-curl -X POST "https://opener-2.preview.emergentagent.com/api/stream/update-metadata?song_title=Flowers&artist=Miley%20Cyrus&album=Endless%20Summer%20Vacation"
+curl -X POST "https://build-hub-401.preview.emergentagent.com/api/stream/update-metadata?song_title=Flowers&artist=Miley%20Cyrus&album=Endless%20Summer%20Vacation"
 ```
 
 **Python:**
 ```python
 import requests
 
-url = "https://opener-2.preview.emergentagent.com/api/stream/update-metadata"
+url = "https://build-hub-401.preview.emergentagent.com/api/stream/update-metadata"
 params = {
     "song_title": "Flowers",
     "artist": "Miley Cyrus",
@@ -57,7 +57,7 @@ requests.post(url, params=params)
 
 **JavaScript:**
 ```javascript
-const url = 'https://opener-2.preview.emergentagent.com/api/stream/update-metadata';
+const url = 'https://build-hub-401.preview.emergentagent.com/api/stream/update-metadata';
 const params = new URLSearchParams({
     song_title: 'Flowers',
     artist: 'Miley Cyrus',
@@ -76,7 +76,7 @@ fetch(`${url}?${params}`, { method: 'POST' });
 2. Enable "Send Now Playing Info to URL"
 3. Set URL to:
    ```
-   https://opener-2.preview.emergentagent.com/api/stream/update-metadata?song_title=%t&artist=%a&album=%l
+   https://build-hub-401.preview.emergentagent.com/api/stream/update-metadata?song_title=%t&artist=%a&album=%l
    ```
 4. SAM will automatically update your site when songs change!
 
@@ -84,7 +84,7 @@ fetch(`${url}?${params}`, { method: 'POST' });
 1. Go to **Options** → **Internet Broadcasting**
 2. Under "Song Change URL", add:
    ```
-   https://opener-2.preview.emergentagent.com/api/stream/update-metadata?song_title=$artist$&artist=$title$
+   https://build-hub-401.preview.emergentagent.com/api/stream/update-metadata?song_title=$artist$&artist=$title$
    ```
 3. Enable "Send Song Updates"
 
@@ -92,21 +92,21 @@ fetch(`${url}?${params}`, { method: 'POST' });
 1. Go to **Settings** → **Server**
 2. In "Song Update URL" field, paste:
    ```
-   https://opener-2.preview.emergentagent.com/api/stream/update-metadata?song_title=%song%&artist=%artist%
+   https://build-hub-401.preview.emergentagent.com/api/stream/update-metadata?song_title=%song%&artist=%artist%
    ```
 
 ### Station Playlist Creator
 1. **Tools** → **Options** → **Web Hook**
 2. Add webhook URL:
    ```
-   https://opener-2.preview.emergentagent.com/api/stream/update-metadata?song_title=%title%&artist=%artist%&album=%album%
+   https://build-hub-401.preview.emergentagent.com/api/stream/update-metadata?song_title=%title%&artist=%artist%&album=%album%
    ```
 
 ### Rocket Broadcaster
 1. **Settings** → **Metadata**
 2. Set "HTTP POST URL":
    ```
-   https://opener-2.preview.emergentagent.com/api/stream/update-metadata?song_title=%TITLE%&artist=%ARTIST%
+   https://build-hub-401.preview.emergentagent.com/api/stream/update-metadata?song_title=%TITLE%&artist=%ARTIST%
    ```
 
 ---
@@ -140,12 +140,12 @@ The backend attempts to fetch metadata from Live365 every 2 minutes, but Live365
 
 Try this in your browser or command line:
 ```
-https://opener-2.preview.emergentagent.com/api/stream/update-metadata?song_title=My%20Test%20Song&artist=Test%20Artist
+https://build-hub-401.preview.emergentagent.com/api/stream/update-metadata?song_title=My%20Test%20Song&artist=Test%20Artist
 ```
 
 Check the result at:
 ```
-https://opener-2.preview.emergentagent.com
+https://build-hub-401.preview.emergentagent.com
 ```
 
 ---

@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Mail, Lock, UserPlus } from 'lucide-react';
 
 export default function Register() {
-  const { register, user } = useAuth();
+  const { register, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -12,7 +12,7 @@ export default function Register() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  if (user) { navigate('/'); return null; }
+  useEffect(() => { if (!authLoading && user) navigate('/'); }, [user, authLoading, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

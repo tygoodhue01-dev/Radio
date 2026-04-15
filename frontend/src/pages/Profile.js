@@ -5,7 +5,7 @@ import { updateProfileApi, getMyPointsApi } from '../services/api';
 import { User, Save, LogOut, Star, Gift } from 'lucide-react';
 
 export default function Profile() {
-  const { user, logout, refresh } = useAuth();
+  const { user, logout, refresh, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
@@ -14,11 +14,12 @@ export default function Profile() {
   const [msg, setMsg] = useState('');
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) { navigate('/login'); return; }
     setName(user.name || '');
     setBio(user.bio || '');
     getMyPointsApi().then(setPoints);
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   const save = async (e) => {
     e.preventDefault();

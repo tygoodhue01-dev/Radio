@@ -5,7 +5,7 @@ import { getAdminStatsApi, getAdminUsersApi, getAdminRequestsApi, updateUserApi,
 import { Shield, Users, Newspaper, Music, Trash2, Check, X, Plus, BarChart3, UserCog } from 'lucide-react';
 
 export default function Admin() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState('stats');
   const [stats, setStats] = useState({});
@@ -15,9 +15,10 @@ export default function Admin() {
   const [msg, setMsg] = useState('');
 
   useEffect(() => {
+    if (loading) return;
     if (!user || !['admin', 'dj', 'editor'].includes(user.role)) { navigate('/'); return; }
     loadData();
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
 
   const loadData = () => {
     if (user?.role === 'admin') {
@@ -57,6 +58,7 @@ export default function Admin() {
     } catch (err) { setMsg(err.message); }
   };
 
+  if (loading) return <div className="max-w-6xl mx-auto px-4 py-12 text-center text-zinc-500">Loading...</div>;
   if (!user || !['admin', 'dj', 'editor'].includes(user.role)) return null;
 
   const tabs = [

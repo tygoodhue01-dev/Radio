@@ -202,6 +202,38 @@ class AdminPanelAPITester:
             print(f"   Now Playing: {response.get('song_title')} by {response.get('artist')}")
         return success
 
+    def test_stream_config_get(self):
+        """Test GET stream config endpoint"""
+        success, response = self.run_test(
+            "GET Stream Config",
+            "GET",
+            "stream-config",
+            200
+        )
+        if success:
+            print(f"   Stream URL: {response.get('stream_url')}")
+            print(f"   Station: {response.get('station_name')}")
+            print(f"   Tagline: {response.get('tagline')}")
+        return success
+
+    def test_stream_config_update(self):
+        """Test PUT stream config endpoint"""
+        test_data = {
+            "stream_url": "https://das-edge62-live365-dal03.cdnstream.com/a55796",
+            "station_name": "The Beat 515",
+            "tagline": "Proud. Loud. Local."
+        }
+        success, response = self.run_test(
+            "PUT Stream Config",
+            "PUT",
+            "stream-config",
+            200,
+            data=test_data
+        )
+        if success:
+            print(f"   Updated Stream URL: {response.get('stream_url')}")
+        return success
+
 def main():
     print("🚀 Starting Admin Panel API Tests...")
     print("=" * 50)
@@ -230,6 +262,8 @@ def main():
         tester.test_news_endpoints,
         tester.test_schedule_endpoints,
         tester.test_now_playing,
+        tester.test_stream_config_get,
+        tester.test_stream_config_update,
     ]
 
     # Run all tests

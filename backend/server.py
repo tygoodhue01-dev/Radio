@@ -1317,43 +1317,45 @@ def fetch_icecast_metadata(stream_url: str) -> dict:
         header = {'Icy-MetaData': '1', 'User-Agent': 'TheBeat515/1.0'}
         request = urllib.request.Request(stream_url, headers=header)
         response = urllib.request.urlopen(request, timeout=10)
-        
+
+        station_name = response.headers.get('icy-name', 'The Beat 515')
+
         icy_metaint_header = response.headers.get('icy-metaint')
         if icy_metaint_header is None:
             logger.warning("No icy-metaint header in stream response")
             return None
-        
+
         metaint = int(icy_metaint_header)
         read_buffer = metaint + 4096
         content = response.read(read_buffer)
-        
-        # Convert bytes to string
+
         content_str = content.decode('latin-1', errors='ignore')
-        
-        # Find StreamTitle
+
         stream_title_pos = content_str.find("StreamTitle='")
         if stream_title_pos == -1:
             logger.warning("No StreamTitle found in metadata")
             return None
-        
-        # Extract title
+
         post_title_content = content_str[stream_title_pos + 13:]
         semicolon_pos = post_title_content.find("';")
         if semicolon_pos == -1:
             logger.warning("Could not parse StreamTitle")
             return None
-        
+
         full_title = post_title_content[:semicolon_pos].strip()
-        
-        # Parse "Artist - Song Title" format
+
+        if not full_title or full_title.lower() in ('unknown', '', 'n/a', 'none'):
+            logger.info(f"Stream metadata has no song info (title='{full_title}'), skipping update")
+            return None
+
         if ' - ' in full_title:
             parts = full_title.split(' - ', 1)
             artist = parts[0].strip()
             song_title = parts[1].strip()
         else:
-            artist = "The Beat 515"
+            artist = station_name
             song_title = full_title
-        
+
         return {
             "song_title": song_title,
             "artist": artist,

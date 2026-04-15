@@ -160,12 +160,12 @@ export default function Admin() {
   const renderNowPlaying = () => (
     <div>
       <h2 className="text-2xl font-extrabold text-white tracking-[1px]">Stream Settings</h2>
-      <p className="text-sm text-[#a1a1aa] mt-1 mb-6">Configure your radio stream and update what's currently playing.</p>
+      <p className="text-sm text-[#a1a1aa] mt-1 mb-6">Configure your radio stream source for automatic metadata updates.</p>
 
       {/* Stream URL Config */}
       <div className="bg-[#18181b] rounded-xl p-6 border border-[rgba(255,255,255,0.1)] mb-6">
         <h3 className="text-lg font-bold text-white mb-1">Stream Configuration</h3>
-        <p className="text-xs text-[#71717a] mb-4">Set the stream URL that plays on the website. This URL is used for both the live player and automatic metadata fetching.</p>
+        <p className="text-xs text-[#71717a] mb-4">Enter your Live365, Shoutcast, Icecast, or other streaming URL. The system will automatically fetch now playing metadata from this stream.</p>
         <Label>STREAM URL</Label>
         <Input value={streamUrl} onChange={e => setStreamUrl(e.target.value)} placeholder="https://..." data-testid="stream-url-input" />
         <Label>STATION NAME</Label>
@@ -185,23 +185,9 @@ export default function Admin() {
       </div>
 
       {/* Info Card */}
-      <div className="bg-[rgba(0,240,255,0.05)] rounded-xl p-5 border border-[rgba(0,240,255,0.15)] mb-6">
-        <h4 className="text-sm font-bold text-[#00F0FF] mb-1">Automatic Metadata Updates</h4>
-        <p className="text-xs text-[#a1a1aa] leading-relaxed">The now playing information is automatically pulled from your stream every 2 minutes. Song title and artist will update automatically when detected from the Icecast/Shoutcast metadata.</p>
-      </div>
-
-      {/* Manual Now Playing Update */}
-      <div className="bg-[#18181b] rounded-xl p-6 border border-[rgba(255,255,255,0.1)]">
-        <h3 className="text-lg font-bold text-white mb-1">Manual Now Playing Override</h3>
-        <p className="text-xs text-[#71717a] mb-4">Manually set the currently playing song. This overrides the automatic metadata until the next automatic update.</p>
-        <Label>SONG TITLE</Label>
-        <Input value={npSong} onChange={e => setNpSong(e.target.value)} placeholder="Song title" data-testid="np-song-input" />
-        <Label>ARTIST</Label>
-        <Input value={npArtist} onChange={e => setNpArtist(e.target.value)} placeholder="Artist name" data-testid="np-artist-input" />
-        <Btn pink className="w-full mt-6" onClick={async () => {
-          if (!npSong.trim()) return alert('Enter a song title');
-          try { await updateNowPlayingApi({ song_title: npSong, artist: npArtist }); setNpSong(''); setNpArtist(''); alert('Now Playing updated!'); } catch (e) { alert(e.message); }
-        }} data-testid="update-np-btn"><Save size={16} /> UPDATE NOW PLAYING</Btn>
+      <div className="bg-[rgba(0,240,255,0.05)] rounded-xl p-5 border border-[rgba(0,240,255,0.15)]">
+        <h4 className="text-sm font-bold text-[#00F0FF] mb-1">Automatic Updates</h4>
+        <p className="text-xs text-[#a1a1aa] leading-relaxed">The now playing information is automatically pulled from your stream every 2 minutes. Song title, artist, and album art will update automatically when detected.</p>
       </div>
     </div>
   );

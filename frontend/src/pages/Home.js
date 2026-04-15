@@ -30,9 +30,9 @@ export default function Home() {
     ]).then(([npD, n, s, e, c, p, d, sc]) => {
       setNp(npD); setNews(n); setShows(s);
       setEvents(e); setContests(c); setPodcasts(p); setDjs(d);
-      setStreamUrl(sc.stream_url || 'https://streaming.live365.com/a72818');
+      setStreamUrl(sc.stream_url || 'https://das-edge62-live365-dal03.cdnstream.com/a55796');
     });
-    const iv = setInterval(() => getNowPlayingApi().then(setNp), 30000);
+    const iv = setInterval(() => getNowPlayingApi().then(setNp), 15000);
     return () => clearInterval(iv);
   }, []);
 
@@ -77,10 +77,14 @@ export default function Home() {
               <span className="text-[11px] font-extrabold text-[#FFF000] tracking-[3px]">ON AIR NOW</span>
             </div>
             <h1 className="text-[48px] font-black text-white tracking-[-1px] leading-tight" data-testid="hero-now-playing-title">
-              {np.song_title}
+              {(!np.song_title || np.song_title.toLowerCase() === 'unknown') ? 'The Beat 515' : np.song_title}
             </h1>
-            <p className="text-[22px] text-[#a1a1aa] mt-1" data-testid="now-playing-artist">{np.artist}</p>
-            <p className="text-sm text-[#71717a] mt-2 mb-6">with {np.dj_name || 'AutoDJ'}</p>
+            <p className="text-[22px] text-[#a1a1aa] mt-1" data-testid="now-playing-artist">
+              {(!np.song_title || np.song_title.toLowerCase() === 'unknown') ? 'Now Streaming Live' : np.artist}
+            </p>
+            <p className="text-sm text-[#71717a] mt-2 mb-6">
+              {(!np.song_title || np.song_title.toLowerCase() === 'unknown') ? 'Tune in for the hottest hits' : `with ${np.dj_name || 'AutoDJ'}`}
+            </p>
 
             <div className="flex flex-wrap items-center gap-4">
               <button onClick={togglePlay} data-testid="play-pause-btn"

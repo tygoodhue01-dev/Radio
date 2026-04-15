@@ -3,68 +3,47 @@
 ## Overview
 **The Beat 515** is a full-stack web application for a Top 40 radio station with the tagline **"Proud. Loud. Local."**
 
-## Architecture
+## Tech Stack
 - **Frontend**: React (CRA) with Tailwind CSS, React Router DOM
 - **Backend**: FastAPI (Python) with MongoDB (Motor async driver)
 - **Auth**: JWT-based custom authentication with bcrypt password hashing
-
-## Original Problem
-User wanted to install an existing GitHub repo (https://github.com/tygoodhue01-dev/Radio) which was built with React Native (Expo). The Expo frontend didn't work in the Emergent environment (port 3000 required), so the frontend was converted from Expo/React Native to a standard React web app (CRA).
+- **Stream**: Live365 CDN stream with Icecast metadata auto-polling
 
 ## What's Been Implemented (April 15, 2026)
-### Backend (unchanged from repo)
-- Full FastAPI backend with 50+ API endpoints
-- JWT auth with brute force protection
-- User roles: admin, dj, editor, listener
-- Seeded accounts, news, shows, events, contests, podcasts, rewards
 
-### Frontend (newly converted from Expo to React CRA)
-- **Home**: Hero section, now playing widget, shows, latest news, events, contests
-- **News**: Category filter, article listing, detail view
-- **Requests**: Song request form, live chat, recent requests list
-- **Rewards**: Points display, daily check-in, rewards catalog, redemption, activity history
-- **Admin Panel**: Dashboard stats, user management (role change/delete), request management (approve/reject/delete), news creation
-- **Profile**: Edit name/bio, points display, logout
-- **Schedule**: Weekly programming schedule display
-- **Leaderboard**: Top listeners by lifetime points
-- **Recently Played**: Song history list
-- **About, Contact, Careers**: Static/form pages
-- **Auth**: Login/Register with proper loading state handling
-- **Now Playing Bar**: Persistent bottom bar with play/pause, song info, volume control
-- **Navigation**: Responsive navbar with mobile menu
+### Stream Integration
+- Stream URL: `https://das-edge62-live365-dal03.cdnstream.com/a55796`
+- Auto metadata polling every 2 minutes from stream
+- Admin can change stream URL from Dashboard > Stream Settings
+- When no song metadata available, shows "The Beat 515 / Now Streaming Live"
+- When song plays, auto-updates to show real song title & artist
 
-## User Roles
-| Role | Access |
-|------|--------|
-| Admin | Full control: manage users, content, settings, now playing |
-| DJ | Manage shows, update now playing, manage requests |
-| Editor | Create/edit news articles |
-| Listener | Browse content, make song requests, chat, earn rewards |
+### Admin Panel (11 tabs with sidebar)
+1. **Overview** - Stats (users, news, requests, pending, shows)
+2. **Stream Settings** - Stream URL config, station name, tagline (auto metadata)
+3. **Requests** - Table with approve/delete
+4. **Users** - Full CRUD with edit modal, role change, delete
+5. **Publish News** - Create articles with title, summary, content, category
+6. **Manage News** - Edit/delete existing articles
+7. **Comments** - Approve/delete pending comments
+8. **Schedule** - Create/edit/delete time slots with modal
+9. **Job Applications** - Review/approve/reject/email/delete
+10. **Roles & Permissions** - Create/edit/delete roles, manage permissions
+11. **Push Notifications** - Send notifications, view history
 
-## Design
-- Dark neon theme (#09090b base)
-- Hot Pink (#FF007F) primary, Cyan (#00F0FF) secondary, Yellow (#FFF000) accent
-- Fonts: Syne (display), DM Sans (body), JetBrains Mono (mono)
-- Glassmorphism cards with backdrop blur
-- Responsive: max-width 6xl, mobile-friendly
+### Profile Drawer
+- Slides in from right side when clicking user avatar in navbar
+- Shows: avatar, name, email, role badge, stats, favorites, quick actions, sign out
 
-## P0 (Completed)
-- [x] Convert Expo frontend to React CRA
-- [x] All pages functional end-to-end
-- [x] Auth working with proper loading states
-- [x] Admin panel with stats, users, requests, news creation
+### Frontend Pages
+- Home (hero with LISTEN LIVE, shows, news, events, contests, podcasts, footer)
+- News (category filter, featured article, grid)
+- Requests (form, recent requests, live chat)
+- Rewards (points, check-in, catalog, leaderboard, history)
+- Schedule, About, Careers, Contact, Leaderboard, Recently Played
+- Auth (Login, Register)
 
-## P1 (Backlog)
-- [ ] Polls feature (backend exists, no frontend)
-- [ ] Podcasts/Replays page (backend exists)
-- [ ] Advanced analytics dashboard
-- [ ] Push notifications (web)
-- [ ] Role management UI
-- [ ] Job application management in admin
-
-## P2 (Future)
-- [ ] Real-time chat via WebSockets
-- [ ] Song rating and favorites UI
-- [ ] Charts/trending page
-- [ ] Rich text editor for news
-- [ ] Image upload for news/profile
+## Seeded Accounts
+- Admin: admin@thebeat515.com / Beat515Admin!
+- DJ: dj@thebeat515.com / DJBeat515!
+- Editor: news@thebeat515.com / News515!

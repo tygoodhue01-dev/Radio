@@ -1,8 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import Navbar from './components/Navbar';
-import NowPlayingBar from './components/NowPlayingBar';
 import Home from './pages/Home';
 import News from './pages/News';
 import NewsDetail from './pages/NewsDetail';
@@ -23,28 +21,24 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <div className="min-h-screen bg-beat-bg text-white font-body">
-          <Navbar />
-          <main className="pb-24">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/news" element={<News />} />
-              <Route path="/news/:id" element={<NewsDetail />} />
-              <Route path="/requests" element={<Requests />} />
-              <Route path="/rewards" element={<Rewards />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/schedule" element={<Schedule />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/careers" element={<Careers />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/leaderboard" element={<Leaderboard />} />
-              <Route path="/recently-played" element={<RecentlyPlayed />} />
-            </Routes>
-          </main>
-          <NowPlayingBar />
+        <div className="min-h-screen bg-[#09090b] text-white font-body">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/news" element={<News />} />
+            <Route path="/news/:id" element={<NewsDetail />} />
+            <Route path="/requests" element={<Requests />} />
+            <Route path="/rewards" element={<Rewards />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/schedule" element={<Schedule />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/careers" element={<Careers />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/recently-played" element={<RecentlyPlayed />} />
+          </Routes>
         </div>
       </AuthProvider>
     </BrowserRouter>

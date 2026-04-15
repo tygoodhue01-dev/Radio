@@ -3,6 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { getAdminStatsApi, getAdminUsersApi, getAdminRequestsApi, updateUserApi, deleteUserApi, updateRequestStatusApi, deleteRequestApi, createNewsApi } from '../services/api';
 import { Shield, Users, Newspaper, Music, Trash2, Check, X, Plus, BarChart3, UserCog } from 'lucide-react';
+import WebNavBar from '../components/Navbar';
+import Footer from '../components/Footer';
 
 export default function Admin() {
   const { user, loading } = useAuth();
@@ -69,7 +71,9 @@ export default function Admin() {
   ].filter(t => t.roles.includes(user.role));
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8" data-testid="admin-page">
+    <div data-testid="admin-page">
+      <WebNavBar />
+      <div className="max-w-6xl mx-auto px-4 py-8">
       <h1 className="font-display text-3xl font-extrabold mb-6 flex items-center gap-3">
         <Shield size={28} className="text-beat-cyan" /> Admin Panel
       </h1>
@@ -221,6 +225,8 @@ export default function Admin() {
           </form>
         </div>
       )}
+    </div>
+    <Footer />
     </div>
   );
 }

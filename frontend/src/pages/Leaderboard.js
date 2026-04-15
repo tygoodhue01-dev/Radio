@@ -1,53 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import { getLeaderboardApi } from '../services/api';
-import { Trophy, Medal } from 'lucide-react';
+import { Trophy, Star } from 'lucide-react';
+import WebNavBar from '../components/Navbar';
+import Footer from '../components/Footer';
 
 export default function Leaderboard() {
   const [leaders, setLeaders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    getLeaderboardApi().then(d => { setLeaders(d); setLoading(false); });
-  }, []);
-
-  const colors = ['text-beat-yellow', 'text-zinc-300', 'text-orange-400'];
+  useEffect(() => { getLeaderboardApi().then(d => { setLeaders(d); setLoading(false); }); }, []);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8" data-testid="leaderboard-page">
-      <h1 className="font-display text-3xl font-extrabold mb-2 flex items-center gap-3">
-        <Trophy size={28} className="text-beat-yellow" /> Leaderboard
-      </h1>
-      <p className="text-zinc-500 text-sm mb-8">Top listeners by lifetime points</p>
+    <div data-testid="leaderboard-page">
+      <WebNavBar />
+      <div className="max-w-[600px] mx-auto px-8 py-8">
+        <h1 className="text-[28px] font-black text-white tracking-[3px] font-display flex items-center gap-3">
+          <Trophy size={28} className="text-[#FFF000]" /> LEADERBOARD
+        </h1>
+        <p className="text-sm text-[#a1a1aa] mt-1 mb-6">Top listeners by lifetime points</p>
 
-      {loading ? (
-        <div className="text-center py-12 text-zinc-500">Loading...</div>
-      ) : leaders.length === 0 ? (
-        <div className="glass rounded-xl p-10 text-center">
-          <Trophy size={48} className="mx-auto text-zinc-600 mb-4" />
-          <p className="text-zinc-500">No one on the leaderboard yet. Start earning points!</p>
-        </div>
-      ) : (
-        <div className="space-y-3" data-testid="leaderboard-list">
-          {leaders.map((l, i) => (
-            <div key={l.user_id} className={`glass rounded-xl p-4 flex items-center gap-4 glass-hover transition-all
-              ${i === 0 ? 'border border-beat-yellow/20' : ''}`}
-              data-testid={`leaderboard-entry-${i}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-display font-bold text-lg
-                ${i < 3 ? 'bg-white/5' : 'bg-white/[0.02]'} ${colors[i] || 'text-zinc-500'}`}>
-                {i < 3 ? <Medal size={20} /> : i + 1}
+        {loading ? (
+          <div className="text-center py-16 text-[#71717a]">Loading...</div>
+        ) : leaders.length === 0 ? (
+          <div className="text-center py-16 text-[#71717a]">No one on the leaderboard yet.</div>
+        ) : (
+          <div className="space-y-2" data-testid="leaderboard-list">
+            {leaders.map((l, i) => (
+              <div key={l.user_id} className="flex items-center bg-[#18181b] rounded-lg p-4 border border-[rgba(255,255,255,0.1)]" data-testid={`leaderboard-entry-${i}`}>
+                <span className="text-lg font-black text-[#71717a] w-9">#{i + 1}</span>
+                <div className="flex-1">
+                  <span className="text-sm font-semibold text-white">{l.name}</span>
+                  <span className="text-[9px] text-[#71717a] tracking-[1px] ml-2">{l.role?.toUpperCase()}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Star size={14} className="text-[#FFF000]" />
+                  <span className="text-sm font-bold text-[#FFF000]">{l.lifetime_points}</span>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold truncate">{l.name}</p>
-                <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-beat-cyan/10 text-beat-cyan">{l.role}</span>
-              </div>
-              <div className="text-right">
-                <p className="font-display font-bold text-beat-yellow">{l.lifetime_points?.toLocaleString()}</p>
-                <p className="text-[10px] text-zinc-600 font-mono">pts</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
+      <Footer />
     </div>
   );
 }

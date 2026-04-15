@@ -1,49 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { getRecentlyPlayedApi } from '../services/api';
 import { Clock, Music } from 'lucide-react';
+import WebNavBar from '../components/Navbar';
+import Footer from '../components/Footer';
 
 export default function RecentlyPlayed() {
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    getRecentlyPlayedApi(50).then(d => { setSongs(d); setLoading(false); });
-  }, []);
+  useEffect(() => { getRecentlyPlayedApi(50).then(d => { setSongs(d); setLoading(false); }); }, []);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8" data-testid="recently-played-page">
-      <h1 className="font-display text-3xl font-extrabold mb-2 flex items-center gap-3">
-        <Clock size={28} className="text-beat-cyan" /> Recently Played
-      </h1>
-      <p className="text-zinc-500 text-sm mb-8">Songs recently aired on The Beat 515</p>
+    <div data-testid="recently-played-page">
+      <WebNavBar />
+      <div className="max-w-[800px] mx-auto px-8 py-8">
+        <h1 className="text-[28px] font-black text-white tracking-[3px] font-display flex items-center gap-3">
+          <Clock size={28} className="text-[#00F0FF]" /> RECENTLY PLAYED
+        </h1>
+        <p className="text-sm text-[#a1a1aa] mt-1 mb-6">Songs recently aired on The Beat 515</p>
 
-      {loading ? (
-        <div className="text-center py-12 text-zinc-500">Loading...</div>
-      ) : songs.length === 0 ? (
-        <div className="glass rounded-xl p-10 text-center">
-          <Music size={48} className="mx-auto text-zinc-600 mb-4" />
-          <p className="text-zinc-500">No recently played songs available yet.</p>
-        </div>
-      ) : (
-        <div className="space-y-2" data-testid="recently-played-list">
-          {songs.map((s, i) => (
-            <div key={i} className="glass rounded-xl px-5 py-3 flex items-center gap-4 glass-hover transition-all" data-testid={`song-item-${i}`}>
-              <div className="w-10 h-10 rounded-lg bg-beat-pink/10 flex items-center justify-center flex-shrink-0">
-                <Music size={16} className="text-beat-pink" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm truncate">{s.song_title}</p>
-                <p className="text-xs text-zinc-400">{s.artist}</p>
-              </div>
-              <div className="text-right flex-shrink-0">
-                <p className="text-[10px] text-zinc-600 font-mono">
+        {loading ? (
+          <div className="text-center py-16 text-[#71717a]">Loading...</div>
+        ) : songs.length === 0 ? (
+          <div className="text-center py-16 text-[#71717a]">No recently played songs available yet.</div>
+        ) : (
+          <div className="space-y-2" data-testid="recently-played-list">
+            {songs.map((s, i) => (
+              <div key={i} className="bg-[#18181b] rounded-lg px-5 py-3 flex items-center gap-4 border border-[rgba(255,255,255,0.1)] hover:bg-[#27272a] transition-colors" data-testid={`song-item-${i}`}>
+                <div className="w-10 h-10 rounded-lg bg-[rgba(255,0,127,0.1)] flex items-center justify-center flex-shrink-0">
+                  <Music size={16} className="text-[#FF007F]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">{s.song_title}</p>
+                  <p className="text-xs text-[#a1a1aa]">{s.artist}</p>
+                </div>
+                <span className="text-[10px] text-[#71717a] font-mono flex-shrink-0">
                   {s.played_at ? new Date(s.played_at).toLocaleTimeString() : ''}
-                </p>
+                </span>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
+      <Footer />
     </div>
   );
 }

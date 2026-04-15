@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, LogIn } from 'lucide-react';
+import WebNavBar from '../components/Navbar';
+import Footer from '../components/Footer';
 
 export default function Login() {
   const { login, user, loading: authLoading } = useAuth();
@@ -24,7 +26,9 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4" data-testid="login-page">
+    <div data-testid="login-page">
+      <WebNavBar />
+      <div className="min-h-[70vh] flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="font-display text-3xl font-extrabold">Welcome Back</h1>
@@ -55,6 +59,8 @@ export default function Login() {
           </p>
         </div>
       </div>
+      </div>
+      <Footer />
     </div>
   );
 }

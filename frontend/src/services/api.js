@@ -269,6 +269,16 @@ export async function updateProfileApi(data) {
   if (!res.ok) throw new Error('Failed');
   return res.json();
 }
+export async function getMyFavoritesApi() {
+  const res = await authFetch(`${API_BASE}/users/me/favorites`);
+  if (!res.ok) return [];
+  return res.json();
+}
+export async function getMyStatsApi() {
+  const res = await authFetch(`${API_BASE}/users/me/stats`);
+  if (!res.ok) return {};
+  return res.json();
+}
 
 // Job Applications
 export async function submitJobApplicationApi(data) {

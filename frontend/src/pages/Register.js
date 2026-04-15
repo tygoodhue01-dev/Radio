@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Mail, Lock, UserPlus } from 'lucide-react';
+import WebNavBar from '../components/Navbar';
+import Footer from '../components/Footer';
 
 export default function Register() {
   const { register, user, loading: authLoading } = useAuth();
@@ -25,7 +27,9 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4" data-testid="register-page">
+    <div data-testid="register-page">
+      <WebNavBar />
+      <div className="min-h-[70vh] flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="font-display text-3xl font-extrabold">Join The Beat</h1>
@@ -62,6 +66,8 @@ export default function Register() {
           </p>
         </div>
       </div>
+      </div>
+      <Footer />
     </div>
   );
 }

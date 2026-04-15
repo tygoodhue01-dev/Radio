@@ -262,6 +262,11 @@ export async function deleteScheduleSlotApi(id) {
   if (!res.ok) throw new Error('Failed');
   return res.json();
 }
+export async function updateScheduleSlotApi(id, data) {
+  const res = await authFetch(`${API_BASE}/admin/schedule/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+  if (!res.ok) throw new Error('Failed');
+  return res.json();
+}
 
 // Profile
 export async function updateProfileApi(data) {
@@ -310,6 +315,87 @@ export async function votePollApi(pollId, optionIndex) {
   const d = await res.json();
   if (!res.ok) throw new Error(fmtErr(d.detail));
   return d;
+}
+
+// Comments moderation
+export async function getPendingCommentsApi() {
+  const res = await authFetch(`${API_BASE}/admin/comments/pending`);
+  if (!res.ok) return [];
+  return res.json();
+}
+export async function approveCommentApi(commentId) {
+  const res = await authFetch(`${API_BASE}/admin/comments/${commentId}/approve`, { method: 'PUT' });
+  if (!res.ok) throw new Error('Failed');
+  return res.json();
+}
+export async function deleteCommentApi(commentId) {
+  const res = await authFetch(`${API_BASE}/admin/comments/${commentId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Failed');
+  return res.json();
+}
+
+// News update
+export async function updateNewsApi(newsId, data) {
+  const res = await authFetch(`${API_BASE}/news/${newsId}`, { method: 'PUT', body: JSON.stringify(data) });
+  if (!res.ok) throw new Error('Failed');
+  return res.json();
+}
+
+// Roles & Permissions
+export async function getRolesApi() {
+  const res = await authFetch(`${API_BASE}/admin/roles`);
+  if (!res.ok) return [];
+  return res.json();
+}
+export async function getPermissionsApi() {
+  const res = await authFetch(`${API_BASE}/admin/permissions`);
+  if (!res.ok) return [];
+  return res.json();
+}
+export async function createRoleApi(data) {
+  const res = await authFetch(`${API_BASE}/admin/roles`, { method: 'POST', body: JSON.stringify(data) });
+  if (!res.ok) throw new Error('Failed');
+  return res.json();
+}
+export async function updateRoleApi(roleId, data) {
+  const res = await authFetch(`${API_BASE}/admin/roles/${roleId}`, { method: 'PUT', body: JSON.stringify(data) });
+  if (!res.ok) throw new Error('Failed');
+  return res.json();
+}
+export async function deleteRoleApi(roleId) {
+  const res = await authFetch(`${API_BASE}/admin/roles/${roleId}`, { method: 'DELETE' });
+  if (!res.ok) { const d = await res.json(); throw new Error(d.detail || 'Failed'); }
+  return res.json();
+}
+
+// Push Notifications
+export async function getPushTokensApi() {
+  const res = await authFetch(`${API_BASE}/admin/push/tokens`);
+  if (!res.ok) return { total: 0, tokens: [] };
+  return res.json();
+}
+export async function sendPushNotificationApi(title, body, target = 'all') {
+  const res = await authFetch(`${API_BASE}/admin/push/send`, { method: 'POST', body: JSON.stringify({ title, body, target }) });
+  if (!res.ok) { const d = await res.json(); throw new Error(d.detail || 'Failed'); }
+  return res.json();
+}
+export async function getPushHistoryApi() {
+  const res = await authFetch(`${API_BASE}/admin/push/history`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+// Email to applicant
+export async function sendEmailToApplicantApi(appId, emailData) {
+  const res = await authFetch(`${API_BASE}/admin/job-applications/${appId}/send-email`, { method: 'POST', body: JSON.stringify(emailData) });
+  if (!res.ok) throw new Error('Failed');
+  return res.json();
+}
+
+export async function deleteJobApplicationApi(appId) {
+  const res = await authFetch(`${API_BASE}/admin/job-applications/${appId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Failed');
+  return res.json();
 }
 
 // DJs
